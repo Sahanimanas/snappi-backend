@@ -61,15 +61,15 @@ app.get('/health', (req, res) => {
 });
 
 // 404 handler
-// app.use((req, res) => {
-//   res.status(404).json({
-//     success: false,
-//     message: 'Route not found'
-//   });
-// });
-app.use('/', (req, res) => {
-  res.send('Welcome to Snappi API')
-})
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+// app.use('/', (req, res) => {
+//   res.send('Welcome to Snappi API')
+// })
 // Error handler middleware (must be last)
 app.use(errorHandler);
 
