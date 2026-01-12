@@ -61,24 +61,22 @@ app.get('/health', (req, res) => {
 });
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
-
+// app.use((req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     message: 'Route not found'
+//   });
+// });
+app.use('/', (req, res) => {
+  res.send('Welcome to Snappi API')
+})
 // Error handler middleware (must be last)
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 8080;
 
-const server = app.listen('/', PORT, () => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
   console.log(`
     Environment: ${process.env.NODE_ENV || 'development'}
     Port: ${PORT}
