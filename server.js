@@ -73,17 +73,16 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 8080;
 
-const server = app.listen(PORT, () => {
+const server = app.listen('/', PORT, () => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
+  });
   console.log(`
-    ┌─────────────────────────────────────────┐
-    │                                         │
-    │   🚀 Snappi Backend Server Started     │
-    │                                         │
-    │   Environment: ${process.env.NODE_ENV || 'development'}                  │
-    │   Port: ${PORT}                           │
-    │   URL: http://localhost:${PORT}          │
-    │                                         │
-    └─────────────────────────────────────────┘
+    Environment: ${process.env.NODE_ENV || 'development'}
+    Port: ${PORT}
+    URL: http://localhost:${PORT}
   `);
 });
 
