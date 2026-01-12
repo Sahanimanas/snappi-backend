@@ -1,0 +1,543 @@
+{
+  "info": {
+    "name": "Snappi API",
+    "description": "Complete API collection for Snappi Influencer Marketing Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"company\": \"Test Company\",\n  \"phoneNumber\": \"+1234567890\",\n  \"role\": \"brand\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update User Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"company\": \"Updated Company\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/updatedetails",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "updatedetails"]
+            }
+          }
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/updatepassword",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "updatepassword"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Influencers",
+      "item": [
+        {
+          "name": "Get All Influencers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/influencers?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["influencers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Influencers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/influencers?search=fashion&platform=instagram&minFollowers=5000&maxFollowers=100000",
+              "host": ["{{base_url}}"],
+              "path": ["influencers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "fashion"
+                },
+                {
+                  "key": "platform",
+                  "value": "instagram"
+                },
+                {
+                  "key": "minFollowers",
+                  "value": "5000"
+                },
+                {
+                  "key": "maxFollowers",
+                  "value": "100000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Influencer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/influencers/:id",
+              "host": ["{{base_url}}"],
+              "path": ["influencers", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Create Influencer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ankit Chauhan\",\n  \"username\": \"@ankitchauhan\",\n  \"email\": \"ankit@example.com\",\n  \"platform\": \"instagram\",\n  \"profileUrl\": \"https://instagram.com/ankitchauhan\",\n  \"followers\": 5700,\n  \"engagement\": 60.0,\n  \"avgViews\": 100,\n  \"niche\": [\"fitness\"],\n  \"categories\": [\"fitness\", \"health\"],\n  \"country\": \"India\",\n  \"status\": \"available\",\n  \"bio\": \"Fitness influencer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/influencers",
+              "host": ["{{base_url}}"],
+              "path": ["influencers"]
+            }
+          }
+        },
+        {
+          "name": "Update Influencer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followers\": 6000,\n  \"engagement\": 65.0,\n  \"status\": \"busy\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/influencers/:id",
+              "host": ["{{base_url}}"],
+              "path": ["influencers", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Delete Influencer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/influencers/:id",
+              "host": ["{{base_url}}"],
+              "path": ["influencers", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Get Influencer Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/influencers/stats/overview",
+              "host": ["{{base_url}}"],
+              "path": ["influencers", "stats", "overview"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campaigns?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Campaign",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spring Fashion Launch\",\n  \"description\": \"Promote our new spring collection\",\n  \"objective\": \"brand_awareness\",\n  \"campaignType\": \"sponsored_post\",\n  \"status\": \"active\",\n  \"budget\": {\n    \"total\": 5000\n  },\n  \"targetPlatforms\": [\"instagram\"],\n  \"demographics\": {\n    \"ageRange\": [\"18-24\", \"25-34\"],\n    \"gender\": [\"all\"],\n    \"location\": {\n      \"countries\": [\"USA\"]\n    }\n  },\n  \"compensationType\": \"monetary\",\n  \"deliverables\": [\n    {\n      \"type\": \"post\",\n      \"quantity\": 2,\n      \"description\": \"Instagram posts\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paused\",\n  \"budget\": {\n    \"spent\": 1000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Delete Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Add Influencer to Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"influencerId\": \"INFLUENCER_ID_HERE\",\n  \"compensation\": {\n    \"amount\": 500,\n    \"type\": \"monetary\"\n  },\n  \"trackingLink\": \"https://track.snappi.com/campaign/influencer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id/influencers",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id", "influencers"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id/performance",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id", "performance"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campaigns/stats/overview",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "stats", "overview"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Influencer Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/influencers",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "influencers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["health"]
+        }
+      }
+    }
+  ]
+}
