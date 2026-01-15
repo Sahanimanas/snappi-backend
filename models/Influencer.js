@@ -71,7 +71,7 @@ const influencerSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  language: [{
+  languages: [{
     type: String,
     trim: true
   }],
@@ -135,9 +135,9 @@ const influencerSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for search functionality
-influencerSchema.index({ name: 'text', username: 'text', niche: 'text', categories: 'text' });
-influencerSchema.index({ platform: 1, followers: -1 });
-influencerSchema.index({ engagement: -1 });
+// // Index for search functionality
+// influencerSchema.index({ name: 'text', username: 'text', niche: 'text', categories: 'text' });
+// influencerSchema.index({ platform: 1, followers: -1 });
+// influencerSchema.index({ engagement: -1 });
 
 module.exports = mongoose.model('Influencer', influencerSchema);

@@ -59,14 +59,19 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
+app.get('/',(req,res)=>{
+  res.json({
+    success:true,
+    message:'backend working fine'
+  })
+})
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
+// app.use((req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     message: 'Route not found'
+//   });
+// });
 // app.use('/', (req, res) => {
 //   res.send('Welcome to Snappi API')
 // })

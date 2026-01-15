@@ -12,10 +12,7 @@ const Campaign = require('./models/Campaign');
 const CampaignInfluencer = require('./models/CampaignInfluencer');
 
 // Connect to DB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose.connect(process.env.MONGODB_URI);
 
 // Sample data
 const users = [
@@ -31,314 +28,1086 @@ const users = [
 
 const influencers = [
   {
-    name: 'Ankit Chauhan',
-    username: '@ankitchauhan',
-    email: 'ankit@example.com',
-    platform: 'instagram',
-    profileUrl: 'https://instagram.com/ankitchauhan',
-    followers: 5700,
-    engagement: 60.0,
-    avgViews: 100,
-    matchScore: 40,
-    niche: ['fitness'],
-    categories: ['fitness', 'health'],
-    country: 'India',
-    status: 'available',
-    bio: 'Fitness and wellness influencer',
-    pricing: {
-      post: 200,
-      story: 50,
-      reel: 300
-    }
+    "name": "Virat Kohli",
+    "username": "@virat.kohli",
+    "email": "virat.kohli@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/virat.kohli",
+    "followers": 266000000,
+    "engagement": 2.1,
+    "avgViews": 8500000,
+    "matchScore": 98,
+    "niche": ["sports", "fitness"],
+    "categories": ["sports", "fitness"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "International cricketer and fitness icon",
+    "pricing": { "post": 1500000, "story": 600000 }
   },
   {
-    name: 'Aman',
-    username: '@aman',
-    email: 'aman@example.com',
-    platform: 'linkedin',
-    profileUrl: 'https://linkedin.com/in/aman',
-    followers: 7000,
-    engagement: 5.0,
-    avgViews: 1000,
-    matchScore: 21,
-    niche: ['technology'],
-    categories: ['tech', 'business'],
-    country: 'India',
-    status: 'available',
-    bio: 'Technology and business thought leader',
-    pricing: {
-      post: 350,
-      story: 100
-    }
+    "name": "Cristiano Ronaldo",
+    "username": "@cristiano",
+    "email": "cristiano@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/cristiano",
+    "followers": 620000000,
+    "engagement": 1.9,
+    "avgViews": 12000000,
+    "matchScore": 99,
+    "niche": ["sports", "fitness"],
+    "categories": ["sports"],
+    "country": "Portugal",
+    "languages": ["Portuguese","English"],
+    "status": "available",
+    "bio": "Footballer and global sports icon",
+    "pricing": { "post": 3000000, "story": 1200000 }
   },
   {
-    name: 'Sarah Johnson',
-    username: '@sarahstyle',
-    email: 'sarah@example.com',
-    platform: 'instagram',
-    profileUrl: 'https://instagram.com/sarahstyle',
-    followers: 24000,
-    engagement: 6.5,
-    avgViews: 24900,
-    matchScore: 94,
-    niche: ['fashion', 'lifestyle'],
-    categories: ['fashion', 'beauty', 'lifestyle'],
-    country: 'USA',
-    city: 'New York',
-    status: 'available',
-    bio: 'Fashion & lifestyle content creator',
-    pricing: {
-      post: 800,
-      story: 200,
-      reel: 1200
-    }
+    "name": "Lionel Messi",
+    "username": "@leomessi",
+    "email": "messi@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/leomessi",
+    "followers": 500000000,
+    "engagement": 2.0,
+    "avgViews": 10000000,
+    "matchScore": 99,
+    "niche": ["sports"],
+    "categories": ["sports"],
+    "country": "Argentina",
+    "languages": ["Spanish","English"],
+    "status": "available",
+    "bio": "Professional footballer",
+    "pricing": { "post": 2800000, "story": 1000000 }
   },
   {
-    name: 'Mike Chen',
-    username: '@techreviewmike',
-    email: 'mike@example.com',
-    platform: 'youtube',
-    profileUrl: 'https://youtube.com/@techreviewmike',
-    followers: 18300,
-    engagement: 8.1,
-    avgViews: 15000,
-    matchScore: 89,
-    niche: ['technology', 'reviews'],
-    categories: ['tech', 'gadgets', 'reviews'],
-    country: 'Canada',
-    city: 'Toronto',
-    status: 'available',
-    bio: 'Tech reviewer and gadget enthusiast',
-    pricing: {
-      video: 1500,
-      short: 300
-    }
+    "name": "MrBeast",
+    "username": "@mrbeast",
+    "email": "mrbeast@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@MrBeast",
+    "followers": 225000000,
+    "engagement": 8.6,
+    "avgViews": 95000000,
+    "matchScore": 99,
+    "niche": ["entertainment"],
+    "categories": ["entertainment"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Viral YouTube philanthropist",
+    "pricing": { "video": 3000000 }
   },
   {
-    name: 'Emma Wellness',
-    username: '@emmawellness',
-    email: 'emma@example.com',
-    platform: 'tiktok',
-    profileUrl: 'https://tiktok.com/@emmawellness',
-    followers: 31000,
-    engagement: 7.4,
-    avgViews: 28000,
-    matchScore: 92,
-    niche: ['wellness', 'mental health'],
-    categories: ['wellness', 'health', 'lifestyle'],
-    country: 'UK',
-    city: 'London',
-    status: 'available',
-    bio: 'Wellness advocate and mental health supporter',
-    pricing: {
-      post: 600,
-      video: 1000
-    }
+    "name": "Khaby Lame",
+    "username": "@khaby.lame",
+    "email": "khaby@influencer.com",
+    "platform": "tiktok",
+    "profileUrl": "https://tiktok.com/@khaby.lame",
+    "followers": 160000000,
+    "engagement": 9.2,
+    "avgViews": 52000000,
+    "matchScore": 96,
+    "niche": ["comedy"],
+    "categories": ["entertainment"],
+    "country": "Italy",
+    "languages": ["Italian","English"],
+    "status": "available",
+    "bio": "Silent comedy creator",
+    "pricing": { "post": 900000 }
+  },
+  {
+    "name": "Kylie Jenner",
+    "username": "@kyliejenner",
+    "email": "kylie@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/kyliejenner",
+    "followers": 400000000,
+    "engagement": 1.8,
+    "avgViews": 11000000,
+    "matchScore": 97,
+    "niche": ["beauty", "fashion"],
+    "categories": ["beauty"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Beauty entrepreneur",
+    "pricing": { "post": 2500000, "story": 900000 }
+  },
+  {
+    "name": "Selena Gomez",
+    "username": "@selenagomez",
+    "email": "selena@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/selenagomez",
+    "followers": 430000000,
+    "engagement": 1.7,
+    "avgViews": 9000000,
+    "matchScore": 96,
+    "niche": ["music", "lifestyle"],
+    "categories": ["lifestyle"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Singer and lifestyle influencer",
+    "pricing": { "post": 2300000 }
+  },
+  {
+    "name": "Dwayne Johnson",
+    "username": "@therock",
+    "email": "therock@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/therock",
+    "followers": 395000000,
+    "engagement": 1.9,
+    "avgViews": 8500000,
+    "matchScore": 97,
+    "niche": ["fitness", "entertainment"],
+    "categories": ["fitness"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Actor and fitness icon",
+    "pricing": { "post": 2400000 }
+  },
+  {
+    "name": "CarryMinati",
+    "username": "@carryminati",
+    "email": "carry@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@CarryMinati",
+    "followers": 41000000,
+    "engagement": 7.7,
+    "avgViews": 12500000,
+    "matchScore": 95,
+    "niche": ["gaming", "comedy"],
+    "categories": ["gaming"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Gaming and roast creator",
+    "pricing": { "video": 650000 }
+  },
+  {
+    "name": "MKBHD",
+    "username": "@mkbhd",
+    "email": "mkbhd@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@mkbhd",
+    "followers": 19500000,
+    "engagement": 7.1,
+    "avgViews": 3600000,
+    "matchScore": 94,
+    "niche": ["technology"],
+    "categories": ["tech"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Tech reviewer",
+    "pricing": { "video": 900000 }
+  },
+
+  {
+    "name": "PewDiePie",
+    "username": "@pewdiepie",
+    "email": "pewdiepie@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@PewDiePie",
+    "followers": 111000000,
+    "engagement": 6.8,
+    "avgViews": 8000000,
+    "matchScore": 93,
+    "niche": ["gaming"],
+    "categories": ["gaming"],
+    "country": "Sweden",
+    "languages": ["Swedish","English"],
+    "status": "available",
+    "bio": "Legendary gaming YouTuber",
+    "pricing": { "video": 1200000 }
+  },
+  {
+    "name": "Logan Paul",
+    "username": "@loganpaul",
+    "email": "logan@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@LoganPaul",
+    "followers": 24000000,
+    "engagement": 6.1,
+    "avgViews": 3500000,
+    "matchScore": 89,
+    "niche": ["entertainment"],
+    "categories": ["entertainment"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Content creator and entrepreneur",
+    "pricing": { "video": 700000 }
+  },
+  {
+    "name": "Ankur Warikoo",
+    "username": "@ankurwarikoo",
+    "email": "ankur@influencer.com",
+    "platform": "linkedin",
+    "profileUrl": "https://linkedin.com/in/ankurwarikoo",
+    "followers": 3200000,
+    "engagement": 4.6,
+    "avgViews": 520000,
+    "matchScore": 90,
+    "niche": ["business"],
+    "categories": ["business"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Entrepreneur and educator",
+    "pricing": { "post": 200000 }
+  },
+  {
+    "name": "Gary Vaynerchuk",
+    "username": "@garyvee",
+    "email": "gary@influencer.com",
+    "platform": "linkedin",
+    "profileUrl": "https://linkedin.com/in/garyvaynerchuk",
+    "followers": 5000000,
+    "engagement": 4.1,
+    "avgViews": 600000,
+    "matchScore": 91,
+    "niche": ["marketing", "business"],
+    "categories": ["marketing"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Marketing thought leader",
+    "pricing": { "post": 300000 }
+  },
+  {
+    "name": "Huda Kattan",
+    "username": "@hudabeauty",
+    "email": "huda@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/hudabeauty",
+    "followers": 54000000,
+    "engagement": 2.9,
+    "avgViews": 1400000,
+    "matchScore": 92,
+    "niche": ["beauty"],
+    "categories": ["beauty"],
+    "country": "UAE",
+    "languages": ["Arabic","English"],
+    "status": "available",
+    "bio": "Beauty mogul and entrepreneur",
+    "pricing": { "post": 700000 }
+  },
+  {
+    "name": "Emma Chamberlain",
+    "username": "@emmachamberlain",
+    "email": "emma@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/emmachamberlain",
+    "followers": 16000000,
+    "engagement": 5.4,
+    "avgViews": 3000000,
+    "matchScore": 91,
+    "niche": ["fashion", "lifestyle"],
+    "categories": ["fashion"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Lifestyle and fashion creator",
+    "pricing": { "post": 500000 }
+  },
+  {
+    "name": "BB Ki Vines",
+    "username": "@bhuvan.bam22",
+    "email": "bhuvan@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/bhuvan.bam22",
+    "followers": 18000000,
+    "engagement": 4.2,
+    "avgViews": 2500000,
+    "matchScore": 90,
+    "niche": ["comedy"],
+    "categories": ["entertainment"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Comedy content creator",
+    "pricing": { "post": 450000 }
+  },
+  {
+    "name": "Prajakta Koli",
+    "username": "@mostlysane",
+    "email": "prajakta@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@MostlySane",
+    "followers": 7100000,
+    "engagement": 5.1,
+    "avgViews": 900000,
+    "matchScore": 88,
+    "niche": ["comedy", "lifestyle"],
+    "categories": ["lifestyle"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Comedy and lifestyle creator",
+    "pricing": { "video": 300000 }
+  },
+  {
+    "name": "Flying Beast",
+    "username": "@flying_beast",
+    "email": "flyingbeast@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/flying_beast",
+    "followers": 9000000,
+    "engagement": 4.0,
+    "avgViews": 1100000,
+    "matchScore": 87,
+    "niche": ["travel", "family"],
+    "categories": ["travel"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Travel and family vlogger",
+    "pricing": { "post": 280000 }
+  },
+  {
+    "name": "Ali Abdaal",
+    "username": "@aliabdaal",
+    "email": "ali@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@AliAbdaal",
+    "followers": 5400000,
+    "engagement": 6.2,
+    "avgViews": 750000,
+    "matchScore": 89,
+    "niche": ["productivity", "education"],
+    "categories": ["education"],
+    "country": "UK",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Productivity and learning creator",
+    "pricing": { "video": 250000 }
+  },
+  {
+    "name": "James Charles",
+    "username": "@jamescharles",
+    "email": "james@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/jamescharles",
+    "followers": 23000000,
+    "engagement": 3.5,
+    "avgViews": 1800000,
+    "matchScore": 86,
+    "niche": ["beauty"],
+    "categories": ["beauty"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Makeup artist and creator",
+    "pricing": { "post": 600000 }
+  },
+  {
+    "name": "Lilly Singh",
+    "username": "@iisuperwomanii",
+    "email": "lilly@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@iisuperwomanii",
+    "followers": 14000000,
+    "engagement": 4.9,
+    "avgViews": 1200000,
+    "matchScore": 87,
+    "niche": ["comedy"],
+    "categories": ["entertainment"],
+    "country": "Canada",
+    "languages": ["English","French"],
+    "status": "available",
+    "bio": "Comedy and talk show host",
+    "pricing": { "video": 400000 }
+  },
+  {
+    "name": "Nas Daily",
+    "username": "@nasdaily",
+    "email": "nas@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/nasdaily",
+    "followers": 16000000,
+    "engagement": 3.9,
+    "avgViews": 2000000,
+    "matchScore": 88,
+    "niche": ["travel", "education"],
+    "categories": ["education"],
+    "country": "Israel",
+    "languages": ["Hebrew","English"],
+    "status": "available",
+    "bio": "Daily educational travel videos",
+    "pricing": { "post": 450000 }
+  },
+  {
+    "name": "Sandeep Maheshwari",
+    "username": "@sandeepmaheshwari",
+    "email": "sandeep@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@SandeepMaheshwari",
+    "followers": 28000000,
+    "engagement": 5.8,
+    "avgViews": 1800000,
+    "matchScore": 90,
+    "niche": ["motivation"],
+    "categories": ["education"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Motivational speaker and entrepreneur",
+    "pricing": { "video": 300000 }
+  },
+  {
+    "name": "Aashna Shroff",
+    "username": "@aashnashroff",
+    "email": "aashna@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/aashnashroff",
+    "followers": 1100000,
+    "engagement": 4.3,
+    "avgViews": 250000,
+    "matchScore": 82,
+    "niche": ["fashion"],
+    "categories": ["fashion"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Fashion and lifestyle creator",
+    "pricing": { "post": 120000 }
+  },
+  {
+    "name": "Ranveer Allahbadia",
+    "username": "@beerbiceps",
+    "email": "ranveer@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@BeerBiceps",
+    "followers": 8000000,
+    "engagement": 4.1,
+    "avgViews": 600000,
+    "matchScore": 85,
+    "niche": ["podcast", "self-improvement"],
+    "categories": ["lifestyle"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Podcast host and self-growth creator",
+    "pricing": { "video": 350000 }
+  },
+  {
+    "name": "Nuseir Yassin",
+    "username": "@nasdaily",
+    "email": "nuseir@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@NasDaily",
+    "followers": 13000000,
+    "engagement": 4.0,
+    "avgViews": 1500000,
+    "matchScore": 88,
+    "niche": ["education", "travel"],
+    "categories": ["education"],
+    "country": "Israel",
+    "languages": ["Hebrew","English"],
+    "status": "available",
+    "bio": "Educational storytelling videos",
+    "pricing": { "video": 400000 }
+  },
+  {
+    "name": "Alex Costa",
+    "username": "@alexcosta",
+    "email": "alex@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/alexcosta",
+    "followers": 3600000,
+    "engagement": 3.6,
+    "avgViews": 420000,
+    "matchScore": 84,
+    "niche": ["fashion", "men"],
+    "categories": ["fashion"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Men’s fashion influencer",
+    "pricing": { "post": 180000 }
+  },
+  {
+    "name": "Marques Brownlee",
+    "username": "@marquesbrownlee",
+    "email": "marques@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/marquesbrownlee",
+    "followers": 4600000,
+    "engagement": 3.9,
+    "avgViews": 550000,
+    "matchScore": 89,
+    "niche": ["technology"],
+    "categories": ["tech"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Tech reviewer and creator",
+    "pricing": { "post": 220000 }
+  },
+  {
+    "name": "Unbox Therapy",
+    "username": "@unboxtherapy",
+    "email": "unbox@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@unboxtherapy",
+    "followers": 19000000,
+    "engagement": 5.6,
+    "avgViews": 3000000,
+    "matchScore": 91,
+    "niche": ["technology"],
+    "categories": ["tech", "reviews"],
+    "country": "Canada",
+    "languages": ["English","French"],
+    "status": "available",
+    "bio": "Tech unboxing and reviews",
+    "pricing": { "video": 850000 }
+  },
+  {
+    "name": "Emma Watson",
+    "username": "@emmawatson",
+    "email": "emmawatson@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/emmawatson",
+    "followers": 74000000,
+    "engagement": 1.6,
+    "avgViews": 2000000,
+    "matchScore": 90,
+    "niche": ["fashion", "activism"],
+    "categories": ["lifestyle"],
+    "country": "UK",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Actor and social activist",
+    "pricing": { "post": 900000 }
+  },
+  {
+    "name": "David Dobrik",
+    "username": "@daviddobrik",
+    "email": "david@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/daviddobrik",
+    "followers": 15000000,
+    "engagement": 4.7,
+    "avgViews": 2500000,
+    "matchScore": 88,
+    "niche": ["entertainment"],
+    "categories": ["entertainment"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Comedy and vlog creator",
+    "pricing": { "post": 350000 }
+  },
+  {
+    "name": "Zoya Akhtar",
+    "username": "@zoyaakhtar",
+    "email": "zoya@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/zoyaakhtar",
+    "followers": 1300000,
+    "engagement": 2.8,
+    "avgViews": 180000,
+    "matchScore": 80,
+    "niche": ["film", "storytelling"],
+    "categories": ["entertainment"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Film director and storyteller",
+    "pricing": { "post": 150000 }
+  },
+  {
+    "name": "NikkieTutorials",
+    "username": "@nikkietutorials",
+    "email": "nikkie@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/nikkietutorials",
+    "followers": 18000000,
+    "engagement": 3.3,
+    "avgViews": 1200000,
+    "matchScore": 87,
+    "niche": ["beauty"],
+    "categories": ["beauty"],
+    "country": "Netherlands",
+    "languages": ["Dutch","English"],
+    "status": "available",
+    "bio": "Makeup tutorials and beauty content",
+    "pricing": { "post": 400000 }
+  },
+  {
+    "name": "Tanmay Bhat",
+    "username": "@tanmaybhat",
+    "email": "tanmay@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/tanmaybhat",
+    "followers": 6700000,
+    "engagement": 4.9,
+    "avgViews": 900000,
+    "matchScore": 86,
+    "niche": ["comedy"],
+    "categories": ["entertainment"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Comedian and content creator",
+    "pricing": { "post": 250000 }
+  },
+  {
+    "name": "Gaurav Chaudhary",
+    "username": "@technicalguruji",
+    "email": "gaurav@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/technicalguruji",
+    "followers": 5900000,
+    "engagement": 3.7,
+    "avgViews": 650000,
+    "matchScore": 85,
+    "niche": ["technology"],
+    "categories": ["tech"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Tech influencer and gadget expert",
+    "pricing": { "post": 200000 }
+  },
+  {
+    "name": "Casey Neistat",
+    "username": "@caseyneistat",
+    "email": "casey@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@CaseyNeistat",
+    "followers": 13000000,
+    "engagement": 5.3,
+    "avgViews": 2200000,
+    "matchScore": 90,
+    "niche": ["vlogging", "film"],
+    "categories": ["entertainment"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Vlogger and filmmaker",
+    "pricing": { "video": 600000 }
+  },
+  {
+    "name": "Marshmello",
+    "username": "@marshmellomusic",
+    "email": "marshmello@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/marshmellomusic",
+    "followers": 30000000,
+    "engagement": 2.4,
+    "avgViews": 1800000,
+    "matchScore": 88,
+    "niche": ["music", "entertainment"],
+    "categories": ["music"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "DJ and music producer",
+    "pricing": { "post": 600000 }
+  },
+  {
+    "name": "Billie Eilish",
+    "username": "@billieeilish",
+    "email": "billie@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/billieeilish",
+    "followers": 110000000,
+    "engagement": 2.2,
+    "avgViews": 4200000,
+    "matchScore": 95,
+    "niche": ["music", "fashion"],
+    "categories": ["music"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Singer and songwriter",
+    "pricing": { "post": 1200000 }
+  },
+  {
+    "name": "Gigi Hadid",
+    "username": "@gigihadid",
+    "email": "gigi@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/gigihadid",
+    "followers": 78000000,
+    "engagement": 1.6,
+    "avgViews": 2100000,
+    "matchScore": 90,
+    "niche": ["fashion"],
+    "categories": ["fashion"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Fashion model",
+    "pricing": { "post": 900000 }
+  },
+  {
+    "name": "Zendaya",
+    "username": "@zendaya",
+    "email": "zendaya@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/zendaya",
+    "followers": 185000000,
+    "engagement": 1.9,
+    "avgViews": 5200000,
+    "matchScore": 96,
+    "niche": ["fashion", "entertainment"],
+    "categories": ["lifestyle"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Actor and fashion icon",
+    "pricing": { "post": 1500000 }
+  },
+  {
+    "name": "KSI",
+    "username": "@ksi",
+    "email": "ksi@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@KSI",
+    "followers": 25000000,
+    "engagement": 6.0,
+    "avgViews": 4000000,
+    "matchScore": 90,
+    "niche": ["entertainment", "boxing"],
+    "categories": ["entertainment"],
+    "country": "UK",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "YouTuber, musician, boxer",
+    "pricing": { "video": 700000 }
+  },
+  {
+    "name": "Bretman Rock",
+    "username": "@bretmanrock",
+    "email": "bretman@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/bretmanrock",
+    "followers": 19000000,
+    "engagement": 3.7,
+    "avgViews": 1200000,
+    "matchScore": 88,
+    "niche": ["beauty", "comedy"],
+    "categories": ["beauty"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Beauty creator and entertainer",
+    "pricing": { "post": 350000 }
+  },
+  {
+    "name": "Saurav Joshi",
+    "username": "@sauravjoshi",
+    "email": "saurav@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@SauravJoshi",
+    "followers": 24000000,
+    "engagement": 5.5,
+    "avgViews": 3200000,
+    "matchScore": 89,
+    "niche": ["vlogging"],
+    "categories": ["lifestyle"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Daily vlogger",
+    "pricing": { "video": 350000 }
+  },
+  {
+    "name": "Elvish Yadav",
+    "username": "@elvishyadav",
+    "email": "elvish@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/elvishyadav",
+    "followers": 16000000,
+    "engagement": 5.2,
+    "avgViews": 2100000,
+    "matchScore": 88,
+    "niche": ["comedy"],
+    "categories": ["entertainment"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Comedy creator",
+    "pricing": { "post": 300000 }
+  },
+  {
+    "name": "Ashish Chanchlani",
+    "username": "@ashishchanchlani",
+    "email": "ashish@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/ashishchanchlani",
+    "followers": 16000000,
+    "engagement": 4.8,
+    "avgViews": 1800000,
+    "matchScore": 87,
+    "niche": ["comedy"],
+    "categories": ["entertainment"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Comedy sketches creator",
+    "pricing": { "post": 320000 }
+  },
+  {
+    "name": "Shraddha Kapoor",
+    "username": "@shraddhakapoor",
+    "email": "shraddha@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/shraddhakapoor",
+    "followers": 85000000,
+    "engagement": 1.5,
+    "avgViews": 2600000,
+    "matchScore": 92,
+    "niche": ["fashion", "film"],
+    "categories": ["lifestyle"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Actor and fashion influencer",
+    "pricing": { "post": 800000 }
+  },
+  {
+    "name": "Ranveer Singh",
+    "username": "@ranveersingh",
+    "email": "ranveer@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/ranveersingh",
+    "followers": 48000000,
+    "engagement": 1.8,
+    "avgViews": 2000000,
+    "matchScore": 90,
+    "niche": ["fashion", "film"],
+    "categories": ["entertainment"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Actor and style icon",
+    "pricing": { "post": 700000 }
+  },
+  {
+    "name": "Lewis Hamilton",
+    "username": "@lewishamilton",
+    "email": "lewis@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/lewishamilton",
+    "followers": 36000000,
+    "engagement": 2.3,
+    "avgViews": 1800000,
+    "matchScore": 91,
+    "niche": ["sports", "fashion"],
+    "categories": ["sports"],
+    "country": "UK",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Formula 1 world champion",
+    "pricing": { "post": 650000 }
+  },
+  {
+    "name": "Chris Hemsworth",
+    "username": "@chrishemsworth",
+    "email": "chris@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/chrishemsworth",
+    "followers": 59000000,
+    "engagement": 1.7,
+    "avgViews": 2100000,
+    "matchScore": 92,
+    "niche": ["fitness", "film"],
+    "categories": ["fitness"],
+    "country": "Australia",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Actor and fitness enthusiast",
+    "pricing": { "post": 850000 }
+  },
+  {
+    "name": "Beast Philanthropy",
+    "username": "@beastphilanthropy",
+    "email": "philanthropy@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@BeastPhilanthropy",
+    "followers": 20000000,
+    "engagement": 7.0,
+    "avgViews": 15000000,
+    "matchScore": 94,
+    "niche": ["charity"],
+    "categories": ["education"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Charity-focused YouTube channel",
+    "pricing": { "video": 500000 }
+  },
+  {
+    "name": "Jay Shetty",
+    "username": "@jayshetty",
+    "email": "jay@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/jayshetty",
+    "followers": 56000000,
+    "engagement": 2.6,
+    "avgViews": 1900000,
+    "matchScore": 93,
+    "niche": ["motivation", "wellness"],
+    "categories": ["education"],
+    "country": "UK",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Motivational speaker and author",
+    "pricing": { "post": 600000 }
+  },
+  {
+    "name": "Robert Downey Jr.",
+    "username": "@robertdowneyjr",
+    "email": "rdj@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/robertdowneyjr",
+    "followers": 56000000,
+    "engagement": 1.4,
+    "avgViews": 1400000,
+    "matchScore": 90,
+    "niche": ["film"],
+    "categories": ["entertainment"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Actor and producer",
+    "pricing": { "post": 750000 }
+  },
+  {
+    "name": "Alia Bhatt",
+    "username": "@aliaabhatt",
+    "email": "alia@influencer.com",
+    "platform": "instagram",
+    "profileUrl": "https://instagram.com/aliaabhatt",
+    "followers": 82000000,
+    "engagement": 1.6,
+    "avgViews": 2600000,
+    "matchScore": 92,
+    "niche": ["fashion", "film"],
+    "categories": ["lifestyle"],
+    "country": "India",
+    "languages": ["English","Hindi"],
+    "status": "available",
+    "bio": "Actor and fashion influencer",
+    "pricing": { "post": 900000 }
+  },
+  {
+    "name": "Sundar Pichai",
+    "username": "@sundarpichai",
+    "email": "sundar@influencer.com",
+    "platform": "linkedin",
+    "profileUrl": "https://linkedin.com/in/sundarpichai",
+    "followers": 6000000,
+    "engagement": 3.2,
+    "avgViews": 700000,
+    "matchScore": 88,
+    "niche": ["technology", "leadership"],
+    "categories": ["business"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "CEO of Google",
+    "pricing": { "post": 400000 }
+  },
+  {
+    "name": "Satya Nadella",
+    "username": "@satyanadella",
+    "email": "satya@influencer.com",
+    "platform": "linkedin",
+    "profileUrl": "https://linkedin.com/in/satyanadella",
+    "followers": 10000000,
+    "engagement": 3.0,
+    "avgViews": 900000,
+    "matchScore": 89,
+    "niche": ["technology", "leadership"],
+    "categories": ["business"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "CEO of Microsoft",
+    "pricing": { "post": 450000 }
+  },
+  {
+    "name": "IShowSpeed",
+    "username": "@ishowspeed",
+    "email": "speed@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@IShowSpeed",
+    "followers": 25000000,
+    "engagement": 8.2,
+    "avgViews": 7000000,
+    "matchScore": 92,
+    "niche": ["gaming", "entertainment"],
+    "categories": ["gaming"],
+    "country": "USA",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Gaming livestream creator",
+    "pricing": { "video": 600000 }
+  },
+  {
+    "name": "MrWhoseTheBoss",
+    "username": "@mrwhosetheboss",
+    "email": "arun@influencer.com",
+    "platform": "youtube",
+    "profileUrl": "https://youtube.com/@Mrwhosetheboss",
+    "followers": 18000000,
+    "engagement": 6.4,
+    "avgViews": 2800000,
+    "matchScore": 91,
+    "niche": ["technology"],
+    "categories": ["tech"],
+    "country": "UK",
+    "languages": ["English"],
+    "status": "available",
+    "bio": "Smartphone reviews",
+    "pricing": { "video": 650000 }
   }
+
+
+
+
 ];
 
 // Import into DB
 const importData = async () => {
   try {
-    // Create user first
-    await User.deleteMany();
-    await Influencer.deleteMany();
-    await Campaign.deleteMany();
-    await CampaignInfluencer.deleteMany();
+    // 1. Better to use for...of for async/await in loops
+    for (const influencer of influencers) {
+      await Influencer.create(influencer);
+      console.log(`Inserted: ${influencer.name}`);
+    }
 
-    const createdUsers = await User.create(users);
-    console.log('✅ Users Imported'.green.inverse);
-
-    // Add user reference to influencers
-    const influencersWithUser = influencers.map(inf => ({
-      ...inf,
-      addedBy: createdUsers[0]._id
-    }));
-
-    const createdInfluencers = await Influencer.create(influencersWithUser);
-    console.log('✅ Influencers Imported'.green.inverse);
-
-    // Create sample campaigns
-    const campaigns = [
-      {
-        name: 'Spring Fashion Launch',
-        description: 'Promote our new spring fashion collection',
-        objective: 'brand_awareness',
-        campaignType: 'sponsored_post',
-        status: 'active',
-        budget: {
-          total: 5000,
-          spent: 1200,
-          remaining: 3800
-        },
-        targetPlatforms: ['instagram', 'tiktok'],
-        demographics: {
-          ageRange: ['18-24', '25-34'],
-          gender: ['all'],
-          location: {
-            countries: ['USA', 'Canada', 'UK']
-          }
-        },
-        compensationType: 'monetary',
-        kpis: {
-          impressions: true,
-          engagement: true,
-          reach: true
-        },
-        deliverables: [
-          {
-            type: 'post',
-            quantity: 3,
-            description: 'Instagram feed posts'
-          },
-          {
-            type: 'story',
-            quantity: 5,
-            description: 'Instagram stories'
-          }
-        ],
-        startDate: new Date('2024-06-01'),
-        endDate: new Date('2024-07-31'),
-        performance: {
-          totalReach: 180000,
-          totalEngagement: 12500,
-          totalClicks: 3200,
-          roi: 245
-        },
-        influencers: [createdInfluencers[2]._id, createdInfluencers[4]._id],
-        createdBy: createdUsers[0]._id
-      },
-      {
-        name: 'Tech Product Review',
-        description: 'Get reviews for our new smartphone',
-        objective: 'increase_sales',
-        campaignType: 'product_review',
-        status: 'draft',
-        budget: {
-          total: 3500,
-          spent: 0,
-          remaining: 3500
-        },
-        targetPlatforms: ['youtube'],
-        demographics: {
-          ageRange: ['18-24', '25-34', '35-44'],
-          gender: ['all'],
-          location: {
-            countries: ['USA', 'Canada']
-          }
-        },
-        compensationType: 'both',
-        kpis: {
-          impressions: true,
-          clicks: true,
-          conversions: true
-        },
-        deliverables: [
-          {
-            type: 'video',
-            quantity: 1,
-            description: 'Full product review video'
-          }
-        ],
-        influencers: [createdInfluencers[3]._id],
-        createdBy: createdUsers[0]._id
-      }
-    ];
-
-    const createdCampaigns = await Campaign.create(campaigns);
-    console.log('✅ Campaigns Imported'.green.inverse);
-
-    // Create campaign-influencer relationships
-    const campaignInfluencers = [
-      {
-        campaign: createdCampaigns[0]._id,
-        influencer: createdInfluencers[2]._id,
-        status: 'completed',
-        compensation: {
-          amount: 800,
-          type: 'monetary',
-          paid: true
-        },
-        trackingLink: 'https://track.snappi.com/campaign/summer-fashion/sarah-johnson',
-        deliverables: [
-          {
-            type: 'post',
-            url: 'https://instagram.com/p/xyz123',
-            submittedAt: new Date(),
-            approved: true,
-            approvedAt: new Date()
-          }
-        ],
-        performance: {
-          reach: 95000,
-          impressions: 120000,
-          engagement: 8200,
-          engagementRate: 6.8,
-          clicks: 2100
-        },
-        acceptedAt: new Date('2024-06-05'),
-        completedAt: new Date('2024-07-10')
-      },
-      {
-        campaign: createdCampaigns[0]._id,
-        influencer: createdInfluencers[4]._id,
-        status: 'in_progress',
-        compensation: {
-          amount: 600,
-          type: 'monetary',
-          paid: false
-        },
-        trackingLink: 'https://track.snappi.com/campaign/summer-fashion/emma-wellness',
-        performance: {
-          reach: 85000,
-          impressions: 105000,
-          engagement: 4300,
-          engagementRate: 5.1,
-          clicks: 1100
-        },
-        acceptedAt: new Date('2024-06-08')
-      }
-    ];
-
-    await CampaignInfluencer.create(campaignInfluencers);
-    console.log('✅ Campaign-Influencer Relationships Imported'.green.inverse);
-
-    console.log('
-✅ All data imported successfully!'.green.bold);
-    console.log(`
-📧 Test Login Credentials:
-   Email: ${users[0].email}
-   Password: password123
-`.cyan);
-
-    process.exit();
+    console.log('✅ All Data Imported successfully'.green.inverse);
+    process.exit(); // Crucial: otherwise the script hangs
   } catch (err) {
     console.error('❌ Error importing data:'.red, err);
     process.exit(1);
   }
 };
 
-// Delete data
-const deleteData = async () => {
-  try {
-    await User.deleteMany();
-    await Influencer.deleteMany();
-    await Campaign.deleteMany();
-    await CampaignInfluencer.deleteMany();
+// // Delete data
+// const deleteData = async () => {
+//   try {
+//     await User.deleteMany();
+//     await Influencer.deleteMany();
+//     await Campaign.deleteMany();
+//     await CampaignInfluencer.deleteMany();
 
-    console.log('✅ Data Destroyed'.red.inverse);
-    process.exit();
-  } catch (err) {
-    console.error('❌ Error deleting data:'.red, err);
-    process.exit(1);
-  }
-};
-
-if (process.argv[2] === '-i') {
-  importData();
-} else if (process.argv[2] === '-d') {
-  deleteData();
-} else {
-  console.log('Please use -i to import or -d to delete data'.yellow);
-  process.exit();
-}
+//     console.log('✅ Data Destroyed'.red.inverse);
+//     process.exit();
+//   } catch (err) {
+//     console.error('❌ Error deleting data:'.red, err);
+//     process.exit(1);
+//   }
+// };
+importData();
