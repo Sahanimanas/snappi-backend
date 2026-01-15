@@ -1,5 +1,7 @@
 const express = require('express');
+const router = express.Router();
 const {
+  getAllInfluencers,  // NEW: Import the new controller method
   getInfluencers,
   getInfluencer,
   createInfluencer,
@@ -7,18 +9,18 @@ const {
   deleteInfluencer,
   getInfluencerStats
 } = require('../controllers/influencerController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
-const router = express.Router();
-
-// All routes require authentication
+// Protect all routes
 router.use(protect);
+
+// IMPORTANT: Place specific routes BEFORE parameterized routes
+router.route('/all').get(getAllInfluencers);  // NEW ROUTE - must be before /:id
+router.route('/stats/overview').get(getInfluencerStats);
 
 router.route('/')
   .get(getInfluencers)
   .post(createInfluencer);
-
-router.get('/stats/overview', getInfluencerStats);
 
 router.route('/:id')
   .get(getInfluencer)

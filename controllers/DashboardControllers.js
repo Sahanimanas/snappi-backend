@@ -40,18 +40,7 @@ exports.getDashboardOverview = asyncHandler(async (req, res, next) => {
       totalConversions += campaign.performance.totalConversions || 0;
     }
   });
-// Calculate total reach from ALL influencer followers
-const reachAggregation = await Influencer.aggregate([
-  {
-    $group: {
-      _id: null,
-      totalReach: { $sum: '$followers' },  // Sum all followers
-      totalInfluencers: { $sum: 1 }
-    }
-  }
-]);
 
- totalReach = reachAggregation[0]?.totalReach || 0;
   // Calculate ROI: ((Revenue - Cost) / Cost) * 100
   // Assuming each conversion is worth $100 (this can be configured)
   const conversionValue = 100;

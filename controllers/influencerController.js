@@ -1,7 +1,81 @@
 const Influencer = require('../models/Influencer');
 const { asyncHandler, getPagination } = require('../utils/helpers');
 
-// @desc    Get all influencers with search and filters
+// @desc    Get ALL influencers without pagination (for frontend loading)
+// @route   GET /api/influencers/all
+// @access  Private
+exports.getAllInfluencers = asyncHandler(async (req, res, next) => {
+  const {
+    search,
+    platform,
+    niche,
+    status,
+    minFollowers,
+    maxFollowers,
+    minEngagement,
+    maxEngagement,
+    country,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = req.query;
+
+  // Build query
+  let query = {};
+
+  // Text search
+  if (search) {
+    query.$text = { $search: search };
+  }
+
+  // Filters
+  if (platform) {
+    query.platform = platform;
+  }
+
+  if (niche) {
+    query.niche = { $in: [niche] };
+  }
+
+  if (status) {
+    query.status = status;
+  }
+
+  if (country) {
+    query.country = country;
+  }
+
+  // Follower range
+  if (minFollowers || maxFollowers) {
+    query.followers = {};
+    if (minFollowers) query.followers.$gte = parseInt(minFollowers);
+    if (maxFollowers) query.followers.$lte = parseInt(maxFollowers);
+  }
+
+  // Engagement range
+  if (minEngagement || maxEngagement) {
+    query.engagement = {};
+    if (minEngagement) query.engagement.$gte = parseFloat(minEngagement);
+    if (maxEngagement) query.engagement.$lte = parseFloat(maxEngagement);
+  }
+
+  // Sort options
+  const sort = {};
+  sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+  // Execute query WITHOUT pagination - get all results
+  const influencers = await Influencer.find(query)
+    .sort(sort)
+    .populate('addedBy', 'name email')
+    .lean(); // Use lean() for better performance
+
+  res.status(200).json({
+    success: true,
+    count: influencers.length,
+    data: influencers
+  });
+});
+
+// @desc    Get all influencers with search and filters (PAGINATED)
 // @route   GET /api/influencers
 // @access  Private
 exports.getInfluencers = asyncHandler(async (req, res, next) => {

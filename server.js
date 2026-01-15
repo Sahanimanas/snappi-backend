@@ -50,6 +50,9 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/influencers', require('./routes/influencerRoutes'));
 app.use('/api/campaigns', require('./routes/campaignRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+// In your main routes file (e.g., server.js or app.js)
+const searchRoutes = require('./routes/SearchRoutes');
+app.use('/api/influencers', searchRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
