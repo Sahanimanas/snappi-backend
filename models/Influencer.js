@@ -283,13 +283,13 @@ influencerSchema.statics.findByPlatform = function(platformName) {
 
 // ============ INDEXES ============
 
-influencerSchema.index({ name: 'text', 'platforms.username': 'text', bio: 'text' });
-influencerSchema.index({ 'platforms.platform': 1, 'platforms.followers': -1 });
-influencerSchema.index({ 'platforms.engagement': -1 });
-influencerSchema.index({ keywords: 1 });
-influencerSchema.index({ 'location.country': 1, 'location.city': 1 });
-influencerSchema.index({ status: 1, isVerified: 1 });
-influencerSchema.index({ createdAt: -1 });
+// influencerSchema.index({ name: 'text', 'platforms.username': 'text', bio: 'text' });
+// influencerSchema.index({ 'platforms.platform': 1, 'platforms.followers': -1 });
+// influencerSchema.index({ 'platforms.engagement': -1 });
+// influencerSchema.index({ keywords: 1 });
+// influencerSchema.index({ 'location.country': 1, 'location.city': 1 });
+// influencerSchema.index({ status: 1, isVerified: 1 });
+// influencerSchema.index({ createdAt: -1 });
 
 // ============ MIDDLEWARE ============
 

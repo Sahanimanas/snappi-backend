@@ -136,8 +136,8 @@ campaignSchema.pre('save', function(next) {
   next();
 });
 
-// Index for efficient queries
-campaignSchema.index({ status: 1, createdBy: 1 });
-campaignSchema.index({ startDate: 1, endDate: 1 });
+// // Index for efficient queries
+// campaignSchema.index({ status: 1, createdBy: 1 });
+// campaignSchema.index({ startDate: 1, endDate: 1 });
 
 module.exports = mongoose.model('Campaign', campaignSchema);

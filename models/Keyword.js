@@ -55,10 +55,10 @@ keywordSchema.virtual('influencerCount').get(function() {
   return this.influencers ? this.influencers.length : 0;
 });
 
-// Index for search
-keywordSchema.index({ name: 'text', displayName: 'text' });
-keywordSchema.index({ isActive: 1 });
-keywordSchema.index({ influencers: 1 });
+// // Index for search
+// keywordSchema.index({ name: 'text', displayName: 'text' });
+// keywordSchema.index({ isActive: 1 });
+// keywordSchema.index({ influencers: 1 });
 
 // Static: Get all active keywords with counts
 keywordSchema.statics.getActiveKeywords = function() {

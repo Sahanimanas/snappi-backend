@@ -91,6 +91,6 @@ adminSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
   return false;
 };
 
-adminSchema.index({ email: 1 });
+// adminSchema.index({ email: 1 });
 
 module.exports = mongoose.model('Admin', adminSchema);
