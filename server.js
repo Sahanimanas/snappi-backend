@@ -19,13 +19,13 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-app.use(cors({ origin: "*", credentials: true }));
+// // CORS configuration
+// const corsOptions = {
+//   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+//   credentials: true,
+//   optionsSuccessStatus: 200
+// };
+// app.use(cors({ origin: "*", credentials: true }));
 
 // Cookie parser
 app.use(cookieParser());
