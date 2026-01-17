@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
@@ -24,11 +25,14 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
-app.use(cors({origin: "*"}));
+app.use(cors({ origin: "*", credentials: true }));
+
+// Cookie parser
+app.use(cookieParser());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
@@ -46,11 +50,14 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // API Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth', require('./routes/userRoutes')); // Auth endpoints
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/keywords', require('./routes/keywordRoutes'));
 app.use('/api/influencers', require('./routes/influencerRoutes'));
 app.use('/api/campaigns', require('./routes/campaignRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
-// In your main routes file (e.g., server.js or app.js)
+
 const searchRoutes = require('./routes/SearchRoutes');
 app.use('/api/influencers', searchRoutes);
 
@@ -62,40 +69,26 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-app.get('/',(req,res)=>{
+
+app.get('/', (req, res) => {
   res.json({
-    success:true,
-    message:'backend working fine'
-  })
-})
-// 404 handler
-// app.use((req, res) => {
-//   res.status(404).json({
-//     success: false,
-//     message: 'Route not found'
-//   });
-// });
-// app.use('/', (req, res) => {
-//   res.send('Welcome to Snappi API')
-// })
-// Error handler middleware (must be last)
+    success: true,
+    message: 'Snappi API running'
+  });
+});
+
+// Error handler middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`
-    Environment: ${process.env.NODE_ENV || 'development'}
-    Port: ${PORT}
-    URL: http://localhost:${PORT}
-  `);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
-  // Close server & exit process
   server.close(() => process.exit(1));
 });
 

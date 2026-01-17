@@ -1,30 +1,41 @@
 const express = require('express');
 const router = express.Router();
 const {
-  getAllInfluencers,  // NEW: Import the new controller method
   getInfluencers,
   getInfluencer,
   createInfluencer,
   updateInfluencer,
   deleteInfluencer,
+  addPlatform,
+  updatePlatform,
+  removePlatform,
+  assignKeywords,
+  removeKeywords,
+  getTopByEngagement,
   getInfluencerStats
 } = require('../controllers/influencerController');
-const { protect } = require('../middleware/auth');
 
-// Protect all routes
-router.use(protect);
+const { protect, authorize } = require('../middleware/auth');
 
-// IMPORTANT: Place specific routes BEFORE parameterized routes
-router.route('/all').get(getAllInfluencers);  // NEW ROUTE - must be before /:id
-router.route('/stats/overview').get(getInfluencerStats);
+// Public routes
+router.get('/', getInfluencers);
+router.get('/top/engagement', getTopByEngagement);
+router.get('/stats', protect, authorize('admin'), getInfluencerStats);
+router.get('/:id', getInfluencer);
 
-router.route('/')
-  .get(getInfluencers)
-  .post(createInfluencer);
+// Protected routes (Admin only)
+router.post('/', protect, authorize('admin'), createInfluencer);
+router.post('/search', optionalAuth, searchInfluencers);
+router.put('/:id', protect, authorize('admin'), updateInfluencer);
+router.delete('/:id', protect, authorize('admin'), deleteInfluencer);
 
-router.route('/:id')
-  .get(getInfluencer)
-  .put(updateInfluencer)
-  .delete(deleteInfluencer);
+// Platform management
+router.post('/:id/platforms', protect, authorize('admin'), addPlatform);
+router.put('/:id/platforms/:platformId', protect, authorize('admin'), updatePlatform);
+router.delete('/:id/platforms/:platformId', protect, authorize('admin'), removePlatform);
+
+// Keyword assignment
+router.post('/:id/keywords', protect, authorize('admin'), assignKeywords);
+router.delete('/:id/keywords', protect, authorize('admin'), removeKeywords);
 
 module.exports = router;
