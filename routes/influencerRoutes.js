@@ -12,7 +12,8 @@ const {
   assignKeywords,
   removeKeywords,
   getTopByEngagement,
-  getInfluencerStats
+  getInfluencerStats,
+  searchInfluencers
 } = require('../controllers/influencerController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -25,7 +26,7 @@ router.get('/:id', getInfluencer);
 
 // Protected routes (Admin only)
 router.post('/', protect, authorize('admin'), createInfluencer);
-router.post('/search', optionalAuth, searchInfluencers);
+router.post('/search', searchInfluencers);
 router.put('/:id', protect, authorize('admin'), updateInfluencer);
 router.delete('/:id', protect, authorize('admin'), deleteInfluencer);
 

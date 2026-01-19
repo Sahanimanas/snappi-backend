@@ -622,92 +622,88 @@ const getInfluencerStats = asyncHandler(async (req, res) => {
 // @desc    Advanced search influencers
 // @route   POST /api/influencers/search
 // @access  Public
-exports.searchInfluencers = async (req, res) => {
-  try {
-    const {
-      search, platform, keywords, minFollowers, maxFollowers,
-      minEngagement, maxEngagement, country, city, status,
-      isVerified, sortBy = 'createdAt', sortOrder = 'desc',
-      page = 1, limit = 50
-    } = req.body;
+const searchInfluencers = asyncHandler(async (req, res) => {
+  const {
+    search, platform, keywords, minFollowers, maxFollowers,
+    minEngagement, maxEngagement, country, city, status,
+    isVerified, sortBy = 'createdAt', sortOrder = 'desc',
+    page = 1, limit = 50
+  } = req.body;
 
-    const query = {};
+  const query = {};
 
-    // Text search
-    if (search) {
-      query.$or = [
-        { name: new RegExp(search, 'i') },
-        { 'platforms.username': new RegExp(search, 'i') },
-        { bio: new RegExp(search, 'i') }
-      ];
-    }
-
-    // Platform filter
-    if (platform) {
-      query['platforms.platform'] = platform.toLowerCase();
-    }
-
-    // Keywords/category filter
-    if (keywords) {
-      const keywordIds = keywords.split(',').map(id => id.trim());
-      query.keywords = { $in: keywordIds };
-    }
-
-    // Follower range
-    if (minFollowers || maxFollowers) {
-      query['platforms.followers'] = {};
-      if (minFollowers) query['platforms.followers'].$gte = parseInt(minFollowers);
-      if (maxFollowers) query['platforms.followers'].$lte = parseInt(maxFollowers);
-    }
-
-    // Engagement range
-    if (minEngagement || maxEngagement) {
-      query['platforms.engagement'] = {};
-      if (minEngagement) query['platforms.engagement'].$gte = parseFloat(minEngagement);
-      if (maxEngagement) query['platforms.engagement'].$lte = parseFloat(maxEngagement);
-    }
-
-    // Location
-    if (country) query['location.country'] = new RegExp(country, 'i');
-    if (city) query['location.city'] = new RegExp(city, 'i');
-
-    // Status
-    if (status) query.status = status;
-
-    // Verified
-    if (isVerified !== undefined) query.isVerified = isVerified === true || isVerified === 'true';
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    let sort = {};
-    if (sortBy === 'followers') sort = { 'platforms.followers': sortOrder === 'asc' ? 1 : -1 };
-    else if (sortBy === 'engagement') sort = { 'platforms.engagement': sortOrder === 'asc' ? 1 : -1 };
-    else sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
-
-    const [influencers, total] = await Promise.all([
-      Influencer.find(query)
-        .populate('keywords', 'name displayName icon color')
-        .sort(sort).skip(skip).limit(parseInt(limit)),
-      Influencer.countDocuments(query)
-    ]);
-
-    const influencersWithComputed = influencers.map(inf => ({
-      ...inf.toObject(),
-      totalFollowers: inf.totalFollowers,
-      avgEngagement: inf.avgEngagement,
-      platformList: inf.platformList,
-      platformCount: inf.platformCount
-    }));
-
-    res.status(200).json({
-      success: true,
-      count: influencers.length,
-      total,
-      data: influencersWithComputed
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error' });
+  // Text search
+  if (search) {
+    query.$or = [
+      { name: new RegExp(search, 'i') },
+      { 'platforms.username': new RegExp(search, 'i') },
+      { bio: new RegExp(search, 'i') }
+    ];
   }
-};
+
+  // Platform filter
+  if (platform) {
+    query['platforms.platform'] = platform.toLowerCase();
+  }
+
+  // Keywords/category filter
+  if (keywords) {
+    const keywordIds = keywords.split(',').map(id => id.trim());
+    query.keywords = { $in: keywordIds };
+  }
+
+  // Follower range
+  if (minFollowers || maxFollowers) {
+    query['platforms.followers'] = {};
+    if (minFollowers) query['platforms.followers'].$gte = parseInt(minFollowers);
+    if (maxFollowers) query['platforms.followers'].$lte = parseInt(maxFollowers);
+  }
+
+  // Engagement range
+  if (minEngagement || maxEngagement) {
+    query['platforms.engagement'] = {};
+    if (minEngagement) query['platforms.engagement'].$gte = parseFloat(minEngagement);
+    if (maxEngagement) query['platforms.engagement'].$lte = parseFloat(maxEngagement);
+  }
+
+  // Location
+  if (country) query['location.country'] = new RegExp(country, 'i');
+  if (city) query['location.city'] = new RegExp(city, 'i');
+
+  // Status
+  if (status) query.status = status;
+
+  // Verified
+  if (isVerified !== undefined) query.isVerified = isVerified === true || isVerified === 'true';
+
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  let sort = {};
+  if (sortBy === 'followers') sort = { 'platforms.followers': sortOrder === 'asc' ? 1 : -1 };
+  else if (sortBy === 'engagement') sort = { 'platforms.engagement': sortOrder === 'asc' ? 1 : -1 };
+  else sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+  const [influencers, total] = await Promise.all([
+    Influencer.find(query)
+      .populate('keywords', 'name displayName icon color')
+      .sort(sort).skip(skip).limit(parseInt(limit)),
+    Influencer.countDocuments(query)
+  ]);
+
+  const influencersWithComputed = influencers.map(inf => ({
+    ...inf.toObject(),
+    totalFollowers: inf.totalFollowers,
+    avgEngagement: inf.avgEngagement,
+    platformList: inf.platformList,
+    platformCount: inf.platformCount
+  }));
+
+  res.status(200).json({
+    success: true,
+    count: influencers.length,
+    total,
+    data: influencersWithComputed
+  });
+});
 module.exports = {
   getInfluencers,
   getInfluencer,
@@ -720,5 +716,6 @@ module.exports = {
   assignKeywords,
   removeKeywords,
   getTopByEngagement,
-  getInfluencerStats
+  getInfluencerStats,
+  searchInfluencers
 };
