@@ -13,7 +13,9 @@ const {
   removeKeywords,
   getTopByEngagement,
   getInfluencerStats,
-  searchInfluencers
+  searchInfluencers,
+  getCollaboratingInfluencers,
+  getCampaignInfluencers
 } = require('../controllers/influencerController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -21,7 +23,13 @@ const { protect, authorize } = require('../middleware/auth');
 // Public routes
 router.get('/', getInfluencers);
 router.get('/top/engagement', getTopByEngagement);
+
+// Protected routes - specific paths MUST come before /:id
 router.get('/stats', protect, authorize('admin'), getInfluencerStats);
+router.get('/collaborating', protect, getCollaboratingInfluencers);  // NEW: Get collaborating influencers
+router.get('/campaign/:campaignId', protect, getCampaignInfluencers);  // NEW: Get influencers for campaign
+
+// This must come after specific routes (otherwise /collaborating would be treated as :id)
 router.get('/:id', getInfluencer);
 
 // Protected routes (Admin only)

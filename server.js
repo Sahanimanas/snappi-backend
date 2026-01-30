@@ -57,9 +57,8 @@ app.use('/api/keywords', require('./routes/keywordRoutes'));
 app.use('/api/influencers', require('./routes/influencerRoutes'));
 app.use('/api/campaigns', require('./routes/campaignRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
-
-const searchRoutes = require('./routes/SearchRoutes');
-app.use('/api/influencers', searchRoutes);
+app.use('/api/tracking-links', require('./routes/trackingLinkRoutes'));
+app.use('/api/influencers', require('./routes/SearchRoutes'));
 
 // Health check route
 app.get('/health', (req, res) => {

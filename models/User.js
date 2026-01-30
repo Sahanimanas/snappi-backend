@@ -87,6 +87,7 @@ const userSchema = new mongoose.Schema({
       default: true
     }
   },
+  
   // Permissions based on plan
   permissions: {
     canSearchInfluencers: { type: Boolean, default: true },
