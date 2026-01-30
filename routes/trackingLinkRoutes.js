@@ -9,6 +9,7 @@ const {
   getTrackingLink,
   getTrackingLinkByCode,
   submitPost,
+  submitPostByCode,
   getSubmittedPosts,
   updatePostStatus,
   updatePostMetrics,
@@ -16,10 +17,23 @@ const {
   updateTrackingLink,
   deleteTrackingLink,
   getTrackingStats,
+  getOverallStats,
   recordClick
 } = require('../controllers/trackingLinkController');
 
-// Apply protect middleware to all routes
+// ============ PUBLIC ROUTES (no auth required) ============
+// These are used for tracking link redirects and influencer submissions
+
+// Get tracking link by code (for submission page)
+router.get('/code/:code', getTrackingLinkByCode);
+
+// Submit post by tracking code (for influencers - public)
+router.post('/submit/:code', submitPostByCode);
+
+// Record click (for redirect endpoint)
+router.post('/click/:code', recordClick);
+
+// ============ PROTECTED ROUTES (auth required) ============
 router.use(protect);
 
 // Generate tracking link
@@ -31,11 +45,8 @@ router.get('/campaign/:campaignId', getCampaignTrackingLinks);
 // Get tracking stats for a campaign
 router.get('/stats/campaign/:campaignId', getTrackingStats);
 
-// Get tracking link by code (for redirects) - could be public if needed
-router.get('/code/:code', getTrackingLinkByCode);
-
-// Record click (for redirect endpoint) - could be public if needed
-router.post('/click/:code', recordClick);
+// Get overall tracking stats across all campaigns
+router.get('/stats/overall', getOverallStats);
 
 // Single tracking link operations
 router.get('/:id', getTrackingLink);

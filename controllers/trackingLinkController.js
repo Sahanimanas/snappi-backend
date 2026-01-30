@@ -216,13 +216,56 @@ exports.getTrackingLink = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get tracking link by code (public - for redirect)
+// @desc    Get tracking link by code (public - for submission page)
 // @route   GET /api/tracking-links/code/:code
 // @access  Public
 exports.getTrackingLinkByCode = asyncHandler(async (req, res, next) => {
   const { code } = req.params;
 
-  const trackingLink = await TrackingLink.findByCode(code);
+  console.log('Looking up tracking code:', code);
+
+  const trackingLink = await TrackingLink.findOne({ trackingCode: code })
+    .populate('campaign', 'name status startDate endDate targetUrl')
+    .populate('influencer', 'name email profileImage platforms');
+
+  if (!trackingLink) {
+    console.log('Tracking link not found for code:', code);
+    return res.status(404).json({
+      success: false,
+      message: 'Tracking link not found'
+    });
+  }
+
+  // Return full details for the submission page (don't record click here)
+  res.status(200).json({
+    success: true,
+    data: {
+      _id: trackingLink._id,
+      trackingCode: trackingLink.trackingCode,
+      campaign: trackingLink.campaign,
+      influencer: trackingLink.influencer,
+      status: trackingLink.status,
+      submittedPosts: trackingLink.submittedPosts || [],
+      destinationUrl: trackingLink.destinationUrl || trackingLink.campaign?.targetUrl || ''
+    }
+  });
+});
+
+// @desc    Submit a post via tracking code (public - for influencers)
+// @route   POST /api/tracking-links/submit/:code
+// @access  Public
+exports.submitPostByCode = asyncHandler(async (req, res, next) => {
+  const { code } = req.params;
+  const { platform, postType, postUrl, caption, postedAt } = req.body;
+
+  if (!platform || !postUrl) {
+    return res.status(400).json({
+      success: false,
+      message: 'Platform and post URL are required'
+    });
+  }
+
+  const trackingLink = await TrackingLink.findOne({ trackingCode: code });
 
   if (!trackingLink) {
     return res.status(404).json({
@@ -231,16 +274,40 @@ exports.getTrackingLinkByCode = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Record the click
-  trackingLink.recordClick(true); // Assume unique for simplicity
+  if (trackingLink.status !== 'active') {
+    return res.status(400).json({
+      success: false,
+      message: 'This tracking link is no longer active'
+    });
+  }
+
+  // Add the submitted post
+  trackingLink.submittedPosts.push({
+    platform,
+    postType: postType || 'post',
+    postUrl,
+    caption,
+    postedAt: postedAt || new Date(),
+    status: 'pending',
+    submittedAt: new Date()
+  });
+
   await trackingLink.save();
 
-  res.status(200).json({
+  await trackingLink.populate([
+    { path: 'campaign', select: 'name status' },
+    { path: 'influencer', select: 'name email profileImage' }
+  ]);
+
+  res.status(201).json({
     success: true,
+    message: 'Post submitted successfully',
     data: {
-      destinationUrl: trackingLink.destinationUrl,
+      _id: trackingLink._id,
+      trackingCode: trackingLink.trackingCode,
       campaign: trackingLink.campaign,
-      influencer: trackingLink.influencer
+      influencer: trackingLink.influencer,
+      submittedPosts: trackingLink.submittedPosts
     }
   });
 });
@@ -633,21 +700,135 @@ exports.recordClick = asyncHandler(async (req, res, next) => {
   const { code } = req.params;
   const { referrer, userAgent, ip } = req.body;
 
-  const trackingLink = await TrackingLink.findOne({ trackingCode: code });
+  console.log('Recording click for code:', code);
+
+  const trackingLink = await TrackingLink.findOne({ trackingCode: code })
+    .populate('campaign', 'name targetUrl');
 
   if (!trackingLink) {
+    console.log('Tracking link not found for code:', code);
     return res.status(404).json({
       success: false,
       message: 'Tracking link not found'
     });
   }
 
-  // Record click
-  trackingLink.recordClick(true);
+  // Record click directly
+  trackingLink.clickStats = trackingLink.clickStats || { totalClicks: 0, uniqueClicks: 0 };
+  trackingLink.clickStats.totalClicks = (trackingLink.clickStats.totalClicks || 0) + 1;
+  trackingLink.clickStats.uniqueClicks = (trackingLink.clickStats.uniqueClicks || 0) + 1;
+  trackingLink.clickStats.lastClickedAt = new Date();
   await trackingLink.save();
+
+  // Get destination URL with fallbacks
+  const destinationUrl = trackingLink.destinationUrl || 
+                         trackingLink.campaign?.targetUrl || 
+                         'https://google.com'; // Default fallback
+
+  console.log('Click recorded, redirecting to:', destinationUrl);
 
   res.status(200).json({
     success: true,
-    destinationUrl: trackingLink.destinationUrl
+    destinationUrl: destinationUrl
+  });
+});
+
+// @desc    Get overall tracking stats across all campaigns
+// @route   GET /api/tracking-links/stats/overall
+// @access  Private
+exports.getOverallStats = asyncHandler(async (req, res, next) => {
+  const userId = checkAuth(req, res);
+  if (!userId) return;
+
+  // Get all campaigns for this user
+  const Campaign = require('../models/Campaign');
+  const userCampaigns = await Campaign.find({ createdBy: userId }).select('_id name');
+  const campaignIds = userCampaigns.map(c => c._id);
+
+  // Overall stats
+  const overallStats = await TrackingLink.aggregate([
+    { $match: { campaign: { $in: campaignIds } } },
+    {
+      $group: {
+        _id: null,
+        totalLinks: { $sum: 1 },
+        activeLinks: { 
+          $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } 
+        },
+        totalClicks: { $sum: '$clickStats.totalClicks' },
+        uniqueClicks: { $sum: '$clickStats.uniqueClicks' },
+        totalPosts: { $sum: { $size: { $ifNull: ['$submittedPosts', []] } } },
+        totalViews: { $sum: '$totalPerformance.totalViews' },
+        totalLikes: { $sum: '$totalPerformance.totalLikes' },
+        totalComments: { $sum: '$totalPerformance.totalComments' },
+        totalShares: { $sum: '$totalPerformance.totalShares' },
+        totalReach: { $sum: '$totalPerformance.totalReach' }
+      }
+    }
+  ]);
+
+  // Posts by status
+  const postsByStatus = await TrackingLink.aggregate([
+    { $match: { campaign: { $in: campaignIds } } },
+    { $unwind: { path: '$submittedPosts', preserveNullAndEmptyArrays: false } },
+    {
+      $group: {
+        _id: '$submittedPosts.status',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // Top campaigns by posts
+  const topCampaigns = await TrackingLink.aggregate([
+    { $match: { campaign: { $in: campaignIds } } },
+    {
+      $group: {
+        _id: '$campaign',
+        linkCount: { $sum: 1 },
+        postCount: { $sum: { $size: { $ifNull: ['$submittedPosts', []] } } },
+        totalClicks: { $sum: '$clickStats.totalClicks' }
+      }
+    },
+    { $sort: { postCount: -1 } },
+    { $limit: 10 },
+    {
+      $lookup: {
+        from: 'campaigns',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'campaignData'
+      }
+    },
+    { $unwind: { path: '$campaignData', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 1,
+        campaignName: '$campaignData.name',
+        linkCount: 1,
+        postCount: 1,
+        totalClicks: 1
+      }
+    }
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      overview: overallStats[0] || {
+        totalLinks: 0,
+        activeLinks: 0,
+        totalClicks: 0,
+        uniqueClicks: 0,
+        totalPosts: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalShares: 0,
+        totalReach: 0
+      },
+      postsByStatus,
+      topCampaigns
+    }
   });
 });
