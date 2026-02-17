@@ -93,6 +93,10 @@ const campaignSchema = new mongoose.Schema({
     fileUrl: String,
     uploadedAt: Date
   },
+  productUrls: [{
+    type: String,
+    trim: true
+  }],
   performance: {
     totalReach: {
       type: Number,

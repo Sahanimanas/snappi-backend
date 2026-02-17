@@ -192,7 +192,7 @@ trackingLinkSchema.pre('validate', function(next) {
   
   // Generate tracking URL with campaign slug
   if (!this.trackingUrl) {
-    const baseUrl = process.env.TRACKING_BASE_URL ;
+    const baseUrl = process.env.TRACKING_BASE_URL
     const slug = this.campaignSlug || 'campaign';
     // URL format: baseUrl/campaign-name/TRACKINGCODE
     this.trackingUrl = `${baseUrl}/${slug}/${this.trackingCode}`;

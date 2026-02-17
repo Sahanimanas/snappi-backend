@@ -58,6 +58,7 @@ app.use('/api/influencers', require('./routes/influencerRoutes'));
 app.use('/api/campaigns', require('./routes/campaignRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/tracking-links', require('./routes/trackingLinkRoutes'));
+app.use('/api/contracts', require('./routes/contractRoutes'));
 app.use('/api/influencers', require('./routes/SearchRoutes'));
 
 // Health check route
