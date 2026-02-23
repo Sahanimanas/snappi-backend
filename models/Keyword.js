@@ -72,12 +72,20 @@ keywordSchema.statics.getKeywordList = function() {
   return this.aggregate([
     { $match: { isActive: true } },
     {
+      $lookup: {
+        from: 'influencers',
+        localField: '_id',
+        foreignField: 'keywords',
+        as: 'matchedInfluencers'
+      }
+    },
+    {
       $project: {
         name: 1,
         displayName: 1,
         icon: 1,
         color: 1,
-        influencerCount: { $size: '$influencers' }
+        influencerCount: { $size: '$matchedInfluencers' }
       }
     },
     { $sort: { displayName: 1 } }

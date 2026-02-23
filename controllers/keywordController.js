@@ -24,6 +24,14 @@ const getKeywords = asyncHandler(async (req, res) => {
   const keywords = await Keyword.aggregate([
     { $match: query },
     {
+      $lookup: {
+        from: 'influencers',
+        localField: '_id',
+        foreignField: 'keywords',
+        as: 'matchedInfluencers'
+      }
+    },
+    {
       $project: {
         name: 1,
         displayName: 1,
@@ -32,7 +40,7 @@ const getKeywords = asyncHandler(async (req, res) => {
         color: 1,
         isActive: 1,
         influencers: 1,
-        influencerCount: { $size: '$influencers' },
+        influencerCount: { $size: '$matchedInfluencers' },
         createdAt: 1
       }
     },
@@ -422,13 +430,21 @@ const bulkAssignInfluencers = asyncHandler(async (req, res) => {
 const getKeywordStats = asyncHandler(async (req, res) => {
   const stats = await Keyword.aggregate([
     {
+      $lookup: {
+        from: 'influencers',
+        localField: '_id',
+        foreignField: 'keywords',
+        as: 'matchedInfluencers'
+      }
+    },
+    {
       $project: {
         name: 1,
         displayName: 1,
         icon: 1,
         color: 1,
         isActive: 1,
-        influencerCount: { $size: '$influencers' }
+        influencerCount: { $size: '$matchedInfluencers' }
       }
     },
     { $sort: { influencerCount: -1 } }

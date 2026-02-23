@@ -13,7 +13,6 @@ const {
   removeKeywords,
   getTopByEngagement,
   getInfluencerStats,
-  searchInfluencers,
   getCollaboratingInfluencers,
   getCampaignInfluencers
 } = require('../controllers/influencerController');
@@ -34,7 +33,6 @@ router.get('/:id', getInfluencer);
 
 // Protected routes (Admin only)
 router.post('/', protect, authorize('admin'), createInfluencer);
-router.post('/search', searchInfluencers);
 router.put('/:id', protect, authorize('admin'), updateInfluencer);
 router.delete('/:id', protect, authorize('admin'), deleteInfluencer);
 

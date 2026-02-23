@@ -14,9 +14,9 @@ router.use(protect);
 
 // @route   POST /api/influencers/search
 // @desc    Search influencers with filters (returns all if no filters)
-router.post('/search', searchInfluencers);
+router.post('/', searchInfluencers);
 
-// @route   GET /api/influencers/all
+// @route   GET /api/influencers/search/all
 // @desc    Get all influencers without any filters
 router.get('/all', getAllInfluencers);
 

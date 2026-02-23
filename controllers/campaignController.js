@@ -36,7 +36,7 @@ exports.getCampaigns = asyncHandler(async (req, res, next) => {
     .sort(sort)
     .limit(parseInt(limit))
     .skip((parseInt(page) - 1) * parseInt(limit))
-    .populate('influencers', 'name username platforms profileImage totalFollowers avgEngagement')
+    .populate('influencers', 'name username platforms profileImage totalFollowers avgEngagement email')
     .populate('createdBy', 'name email');
 
   const pagination = getPagination(page, limit, total);
@@ -65,7 +65,7 @@ exports.getCampaign = asyncHandler(async (req, res, next) => {
   }
 
   const campaign = await Campaign.findById(id)
-    .populate('influencers', 'name username platforms profileImage totalFollowers avgEngagement status')
+    .populate('influencers', 'name username platforms profileImage totalFollowers avgEngagement status email')
     .populate('createdBy', 'name email company');
 
   if (!campaign) {
