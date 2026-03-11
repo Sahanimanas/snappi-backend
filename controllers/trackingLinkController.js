@@ -3,8 +3,10 @@ const TrackingLink = require('../models/TrackingLink');
 const Campaign = require('../models/Campaign');
 const Influencer = require('../models/Influencer');
 const CampaignInfluencer = require('../models/CampaignInfluencer');
+const User = require('../models/User');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
+const { notifyContentSubmitted, notifyContentApproved, notifyContentRejected } = require('../utils/emailService');
 
 // Helper to get user ID from request
 const getUserId = (req) => {
@@ -295,9 +297,24 @@ exports.submitPostByCode = asyncHandler(async (req, res, next) => {
   await trackingLink.save();
 
   await trackingLink.populate([
-    { path: 'campaign', select: 'name status' },
+    { path: 'campaign', select: 'name status createdBy' },
     { path: 'influencer', select: 'name email profileImage' }
   ]);
+
+  // Send email notification to brand owner (non-blocking)
+  if (trackingLink.campaign?.createdBy) {
+    User.findById(trackingLink.campaign.createdBy).then(brandUser => {
+      if (brandUser?.email) {
+        notifyContentSubmitted(
+          brandUser.email,
+          brandUser.name || 'Brand',
+          trackingLink.influencer?.name || 'Influencer',
+          trackingLink.campaign?.name || 'Campaign',
+          postUrl
+        ).catch(err => console.error('Email notification failed:', err));
+      }
+    }).catch(() => {});
+  }
 
   res.status(201).json({
     success: true,
@@ -435,6 +452,28 @@ exports.updatePostStatus = asyncHandler(async (req, res, next) => {
   }
 
   await trackingLink.save();
+
+  // Send email notification to influencer (non-blocking)
+  const influencer = await Influencer.findById(trackingLink.influencer);
+  const campaign = await Campaign.findById(trackingLink.campaign);
+  const influencerEmail = influencer?.email || influencer?.contactInfo?.email;
+
+  if (influencerEmail) {
+    if (status === 'approved') {
+      notifyContentApproved(
+        influencerEmail,
+        influencer.name || 'Influencer',
+        campaign?.name || 'Campaign'
+      ).catch(err => console.error('Email notification failed:', err));
+    } else if (status === 'rejected') {
+      notifyContentRejected(
+        influencerEmail,
+        influencer.name || 'Influencer',
+        campaign?.name || 'Campaign',
+        reviewNotes
+      ).catch(err => console.error('Email notification failed:', err));
+    }
+  }
 
   res.status(200).json({
     success: true,

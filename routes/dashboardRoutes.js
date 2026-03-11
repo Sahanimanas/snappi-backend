@@ -8,7 +8,8 @@ const {
   getRecentCampaigns,
   getTopPerformingInfluencers,
   getInfluencerDashboard,
-  getDashboardAnalytics
+  getDashboardAnalytics,
+  exportDashboardData
 } = require('../controllers/dashboardController');
 
 // All routes are protected
@@ -20,11 +21,18 @@ router.use(protect);
 
 // @route   GET /api/dashboard
 // @desc    Get complete dashboard overview (stats, recent campaigns, top influencers)
+// @query   view=itd|in_month (default: itd)
 router.get('/', getDashboardOverview);
 
 // @route   GET /api/dashboard/stats
 // @desc    Get dashboard stats only (lightweight)
+// @query   view=itd|in_month
 router.get('/stats', getDashboardStats);
+
+// @route   GET /api/dashboard/export
+// @desc    Export full dashboard data for CSV/Excel download
+// @query   view=itd|in_month
+router.get('/export', exportDashboardData);
 
 // @route   GET /api/dashboard/campaigns/recent
 // @desc    Get recent campaigns for dashboard

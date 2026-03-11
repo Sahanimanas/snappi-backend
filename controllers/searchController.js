@@ -1,4 +1,5 @@
 const Influencer = require('../models/Influencer');
+const Campaign = require('../models/Campaign');
 const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Search influencers with advanced filters (for SearchInfluencers page)
@@ -6,7 +7,7 @@ const { asyncHandler } = require('../utils/helpers');
 // @access  Private
 exports.searchInfluencers = asyncHandler(async (req, res, next) => {
   console.log("Request Body:", req.body);
-  
+
   const {
     search,
     platforms,
@@ -18,54 +19,107 @@ exports.searchInfluencers = asyncHandler(async (req, res, next) => {
     minEngagement,
     maxEngagement,
     campaignObjective,
+    campaignId,
     sortBy = 'followers',
     sortOrder = 'desc',
     limit,
     skip = 0
   } = req.body;
 
-  // Start with empty query - will return ALL influencers if no filters
   let query = {};
   let conditions = [];
 
   // ============================================
-  // TEXT SEARCH - search in name, username, bio
+  // TEXT SEARCH - improved multi-word search
+  // Split search into individual words for better matching
+  // e.g. "make up" matches influencers with "makeup", "make-up", "make up" etc.
   // ============================================
   if (search && search.trim() !== '') {
-    conditions.push({
-      $or: [
+    const searchTerms = search.trim().split(/\s+/);
+
+    if (searchTerms.length === 1) {
+      // Single word: search across all fields
+      conditions.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { 'platforms.username': { $regex: search, $options: 'i' } },
+          { bio: { $regex: search, $options: 'i' } },
+          { niche: { $elemMatch: { $regex: search, $options: 'i' } } },
+          { categories: { $elemMatch: { $regex: search, $options: 'i' } } },
+          { 'location.country': { $regex: search, $options: 'i' } },
+          { 'location.city': { $regex: search, $options: 'i' } }
+        ]
+      });
+    } else {
+      // Multiple words: match ANY of the words (OR logic for broader results)
+      // Also try the full phrase and concatenated version (e.g. "make up" -> "makeup")
+      const concatenated = searchTerms.join('');
+      const hyphenated = searchTerms.join('-');
+
+      const wordConditions = [];
+
+      // Full phrase match
+      wordConditions.push(
         { name: { $regex: search, $options: 'i' } },
-        { username: { $regex: search, $options: 'i' } },
         { bio: { $regex: search, $options: 'i' } },
-        { niche: { $elemMatch: { $regex: search, $options: 'i' } } },
-        { categories: { $elemMatch: { $regex: search, $options: 'i' } } }
-      ]
-    });
+        { 'platforms.username': { $regex: search, $options: 'i' } }
+      );
+
+      // Concatenated match (e.g. "makeup")
+      wordConditions.push(
+        { name: { $regex: concatenated, $options: 'i' } },
+        { bio: { $regex: concatenated, $options: 'i' } },
+        { niche: { $elemMatch: { $regex: concatenated, $options: 'i' } } },
+        { categories: { $elemMatch: { $regex: concatenated, $options: 'i' } } }
+      );
+
+      // Hyphenated match (e.g. "make-up")
+      wordConditions.push(
+        { name: { $regex: hyphenated, $options: 'i' } },
+        { bio: { $regex: hyphenated, $options: 'i' } },
+        { niche: { $elemMatch: { $regex: hyphenated, $options: 'i' } } }
+      );
+
+      // Individual word matches
+      searchTerms.forEach(term => {
+        wordConditions.push(
+          { name: { $regex: term, $options: 'i' } },
+          { bio: { $regex: term, $options: 'i' } },
+          { niche: { $elemMatch: { $regex: term, $options: 'i' } } },
+          { categories: { $elemMatch: { $regex: term, $options: 'i' } } },
+          { 'platforms.username': { $regex: term, $options: 'i' } }
+        );
+      });
+
+      conditions.push({ $or: wordConditions });
+    }
   }
 
   // ============================================
   // PLATFORM FILTER - case-insensitive matching
+  // Also search in platforms array for multi-platform influencers
   // ============================================
- // Case-insensitive platform matching
-if (platforms && Array.isArray(platforms) && platforms.length > 0) {
-  const validPlatforms = platforms.filter(p => p && p.trim() !== '');
-  if (validPlatforms.length > 0) {
-    conditions.push({
-      platform: {
-        $in: validPlatforms.map(p => new RegExp(`^${p.trim()}$`, 'i'))  // 'i' = case insensitive
-      }
-    });
+  if (platforms && Array.isArray(platforms) && platforms.length > 0) {
+    const validPlatforms = platforms.filter(p => p && p.trim() !== '');
+    if (validPlatforms.length > 0) {
+      conditions.push({
+        $or: [
+          { platform: { $in: validPlatforms.map(p => new RegExp(`^${p.trim()}$`, 'i')) } },
+          { 'platforms.platform': { $in: validPlatforms.map(p => p.trim().toLowerCase()) } }
+        ]
+      });
+    }
   }
-}
 
   // ============================================
-  // NICHE FILTER - search in niche and categories arrays
+  // NICHE FILTER
   // ============================================
   if (niche && niche !== 'all' && niche.trim() !== '') {
     conditions.push({
       $or: [
         { niche: { $elemMatch: { $regex: niche, $options: 'i' } } },
-        { categories: { $elemMatch: { $regex: niche, $options: 'i' } } }
+        { categories: { $elemMatch: { $regex: niche, $options: 'i' } } },
+        { bio: { $regex: niche, $options: 'i' } }
       ]
     });
   }
@@ -87,17 +141,17 @@ if (platforms && Array.isArray(platforms) && platforms.length > 0) {
       'japan': 'Japan',
       'mexico': 'Mexico',
       'south-korea': 'South Korea',
-      'afghanistan': 'Afghanistan',
-      'albania': 'Albania',
-      'algeria': 'Algeria',
-      'argentina': 'Argentina'
+      'south africa': 'South Africa',
+      'sa': 'South Africa'
     };
-    
+
     const countryName = locationMap[location.toLowerCase()] || location;
     conditions.push({
       $or: [
         { country: { $regex: countryName, $options: 'i' } },
-        { city: { $regex: countryName, $options: 'i' } }
+        { city: { $regex: countryName, $options: 'i' } },
+        { 'location.country': { $regex: countryName, $options: 'i' } },
+        { 'location.city': { $regex: countryName, $options: 'i' } }
       ]
     });
   }
@@ -116,25 +170,34 @@ if (platforms && Array.isArray(platforms) && platforms.length > 0) {
           { name: { $regex: keyword, $options: 'i' } }
         ]
       }));
-      // Match ANY of the keywords (OR logic)
       conditions.push({ $or: keywordConditions });
     }
   }
 
   // ============================================
-  // FOLLOWER RANGE FILTER
+  // FOLLOWER RANGE FILTER - also check platforms.followers
   // ============================================
   if (minFollowers !== undefined && minFollowers !== null && minFollowers !== '') {
     const min = parseInt(minFollowers);
     if (!isNaN(min) && min > 0) {
-      conditions.push({ followers: { $gte: min } });
+      conditions.push({
+        $or: [
+          { followers: { $gte: min } },
+          { 'platforms.followers': { $gte: min } }
+        ]
+      });
     }
   }
-  
+
   if (maxFollowers !== undefined && maxFollowers !== null && maxFollowers !== '') {
     const max = parseInt(maxFollowers);
     if (!isNaN(max) && max > 0) {
-      conditions.push({ followers: { $lte: max } });
+      conditions.push({
+        $or: [
+          { followers: { $lte: max } },
+          { 'platforms.followers': { $lte: max } }
+        ]
+      });
     }
   }
 
@@ -144,20 +207,29 @@ if (platforms && Array.isArray(platforms) && platforms.length > 0) {
   if (minEngagement !== undefined && minEngagement !== null && minEngagement !== '') {
     const min = parseFloat(minEngagement);
     if (!isNaN(min) && min >= 0) {
-      conditions.push({ engagement: { $gte: min } });
+      conditions.push({
+        $or: [
+          { engagement: { $gte: min } },
+          { 'platforms.engagement': { $gte: min } }
+        ]
+      });
     }
   }
-  
+
   if (maxEngagement !== undefined && maxEngagement !== null && maxEngagement !== '') {
     const max = parseFloat(maxEngagement);
     if (!isNaN(max) && max > 0) {
-      conditions.push({ engagement: { $lte: max } });
+      conditions.push({
+        $or: [
+          { engagement: { $lte: max } },
+          { 'platforms.engagement': { $lte: max } }
+        ]
+      });
     }
   }
 
   // ============================================
   // BUILD FINAL QUERY
-  // Only use $and if we have conditions, otherwise return all
   // ============================================
   if (conditions.length > 0) {
     query.$and = conditions;
@@ -169,64 +241,114 @@ if (platforms && Array.isArray(platforms) && platforms.length > 0) {
   // SORT OPTIONS
   // ============================================
   let sort = {};
-  if (campaignObjective === 'awareness') {
+  if (campaignObjective === 'awareness' || campaignObjective === 'brand_awareness') {
     sort = { followers: -1 };
-  } else if (campaignObjective === 'sales') {
+  } else if (campaignObjective === 'sales' || campaignObjective === 'increase_sales') {
+    sort = { engagement: -1 };
+  } else if (campaignObjective === 'engagement') {
     sort = { engagement: -1 };
   } else {
-    // Default sorting
     const validSortFields = ['followers', 'engagement', 'rating', 'totalCollaborations', 'createdAt', 'name'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'followers';
     sort[sortField] = sortOrder === 'asc' ? 1 : -1;
   }
 
   // ============================================
-  // EXECUTE QUERY - build first, execute last
+  // EXECUTE QUERY
   // ============================================
   let queryBuilder = Influencer.find(query)
     .sort(sort)
     .populate('addedBy', 'name email');
 
-  // Apply pagination if limit is provided
   if (limit && parseInt(limit) > 0) {
     queryBuilder = queryBuilder.skip(parseInt(skip) || 0).limit(parseInt(limit));
   }
 
-  // Execute query
   const influencers = await queryBuilder.lean();
-
-  // Get total count for pagination
   const total = await Influencer.countDocuments(query);
 
   console.log(`Found ${influencers.length} influencers out of ${total} total`);
 
   // ============================================
-  // CALCULATE MATCH SCORES
+  // CALCULATE MATCH SCORES (with campaign scope if provided)
   // ============================================
+  let campaignData = null;
+  if (campaignId) {
+    try {
+      campaignData = await Campaign.findById(campaignId).lean();
+    } catch (e) {
+      // Campaign not found, skip scope-based scoring
+    }
+  }
+
   const influencersWithScores = influencers.map(influencer => {
     let matchScore = 0;
-    
-    // Base score from engagement (0-40 points)
-    matchScore += Math.min((influencer.engagement || 0) * 4, 40);
-    
+
+    // Base score from engagement (0-30 points)
+    // Calculate real engagement rate: (likes + comments + shares + saves) / followers
+    const totalFollowers = influencer.followers ||
+      (influencer.platforms ? influencer.platforms.reduce((sum, p) => sum + (p.followers || 0), 0) : 0);
+
+    let calculatedEngagement = influencer.engagement || 0;
+    if (influencer.platforms && influencer.platforms.length > 0) {
+      const totalInteractions = influencer.platforms.reduce((sum, p) => {
+        return sum + (p.avgLikes || 0) + (p.avgComments || 0);
+      }, 0);
+      if (totalFollowers > 0 && totalInteractions > 0) {
+        calculatedEngagement = (totalInteractions / totalFollowers) * 100;
+      }
+    }
+
+    matchScore += Math.min(calculatedEngagement * 4, 30);
+
     // Score from follower tier (0-20 points)
-    const followers = influencer.followers || 0;
+    const followers = totalFollowers;
     if (followers >= 100000) matchScore += 20;
     else if (followers >= 50000) matchScore += 15;
     else if (followers >= 10000) matchScore += 10;
     else matchScore += 5;
-    
+
     // Bonus for verified accounts (10 points)
-    if (influencer.verified) matchScore += 10;
-    
+    if (influencer.verified || influencer.isVerified) matchScore += 10;
+
     // Bonus for high rating (0-15 points)
-    matchScore += (influencer.rating || 0) * 3;
-    
-    // Bonus for previous collaborations (0-15 points)
-    matchScore += Math.min((influencer.totalCollaborations || 0) * 3, 15);
-    
+    const ratingAvg = influencer.rating?.average || influencer.rating || 0;
+    matchScore += ratingAvg * 3;
+
+    // Bonus for previous collaborations (0-10 points)
+    matchScore += Math.min((influencer.totalCollaborations || 0) * 2, 10);
+
+    // Campaign scope matching bonus (0-15 points)
+    if (campaignData) {
+      // Platform match
+      const influencerPlatforms = influencer.platforms
+        ? influencer.platforms.map(p => p.platform)
+        : [influencer.platform].filter(Boolean);
+
+      const campaignPlatforms = campaignData.targetPlatforms || [];
+      const platformOverlap = influencerPlatforms.filter(p =>
+        campaignPlatforms.includes(p)
+      ).length;
+      if (platformOverlap > 0) matchScore += 5;
+
+      // Location match
+      const campaignCountries = campaignData.demographics?.location?.countries || [];
+      const influencerCountry = influencer.location?.country || influencer.country || '';
+      if (campaignCountries.length > 0 && campaignCountries.some(c =>
+        c.toLowerCase() === influencerCountry.toLowerCase()
+      )) {
+        matchScore += 5;
+      }
+
+      // Objective-specific scoring
+      if (campaignData.objective === 'brand_awareness' && followers >= 50000) matchScore += 5;
+      if (campaignData.objective === 'engagement' && calculatedEngagement >= 3) matchScore += 5;
+      if (campaignData.objective === 'increase_sales' && calculatedEngagement >= 4) matchScore += 5;
+    }
+
     return {
       ...influencer,
+      calculatedEngagement: Math.round(calculatedEngagement * 100) / 100,
       matchScore: Math.min(Math.round(matchScore), 100)
     };
   });
@@ -253,7 +375,6 @@ exports.getAllInfluencers = asyncHandler(async (req, res, next) => {
     .populate('addedBy', 'name email')
     .lean();
 
-  // Add match scores
   const influencersWithScores = influencers.map(influencer => {
     let matchScore = 0;
     matchScore += Math.min((influencer.engagement || 0) * 4, 40);
@@ -265,7 +386,7 @@ exports.getAllInfluencers = asyncHandler(async (req, res, next) => {
     if (influencer.verified) matchScore += 10;
     matchScore += (influencer.rating || 0) * 3;
     matchScore += Math.min((influencer.totalCollaborations || 0) * 3, 15);
-    
+
     return {
       ...influencer,
       matchScore: Math.min(Math.round(matchScore), 100)
@@ -285,7 +406,7 @@ exports.getAllInfluencers = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getSearchSuggestions = asyncHandler(async (req, res, next) => {
   const { q } = req.query;
-  
+
   if (!q || q.length < 2) {
     return res.status(200).json({
       success: true,
@@ -298,7 +419,10 @@ exports.getSearchSuggestions = asyncHandler(async (req, res, next) => {
   }
 
   const nameSuggestions = await Influencer.find({
-    name: { $regex: q, $options: 'i' }
+    $or: [
+      { name: { $regex: q, $options: 'i' } },
+      { 'platforms.username': { $regex: q, $options: 'i' } }
+    ]
   })
     .select('name')
     .limit(5)
@@ -393,64 +517,96 @@ exports.getFilterOptions = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get influencer recommendations
+// @desc    Get influencer recommendations based on campaign
 // @route   POST /api/influencers/search/recommendations
 // @access  Private
 exports.getRecommendations = asyncHandler(async (req, res, next) => {
   const {
+    campaignId,
     campaignObjective,
     targetAudience,
     budget,
     platforms,
     niche,
-    limit = 10
+    scope,
+    limit = 5
   } = req.body;
 
   let conditions = [];
   let sort = {};
 
-  // Platform filter (case-insensitive)
-  if (platforms && Array.isArray(platforms) && platforms.length > 0) {
-    const validPlatforms = platforms.filter(p => p && p.trim() !== '');
-    if (validPlatforms.length > 0) {
-      conditions.push({
-        platform: {
-          $in: validPlatforms.map(p => new RegExp(`^${p.trim()}$`, 'i'))
-        }
-      });
-    }
+  // If campaignId is provided, get campaign details for smarter matching
+  let campaignData = null;
+  if (campaignId) {
+    campaignData = await Campaign.findById(campaignId).lean();
   }
 
-  // Niche filter
-  if (niche && niche.trim() !== '') {
+  // Use campaign data if available
+  const effectivePlatforms = platforms || campaignData?.targetPlatforms || [];
+  const effectiveObjective = campaignObjective || campaignData?.objective;
+  const effectiveNiche = niche || '';
+  const effectiveScope = scope || campaignData?.scope || '';
+
+  // Platform filter (case-insensitive)
+  if (effectivePlatforms.length > 0) {
     conditions.push({
       $or: [
-        { niche: { $elemMatch: { $regex: niche, $options: 'i' } } },
-        { categories: { $elemMatch: { $regex: niche, $options: 'i' } } }
+        { platform: { $in: effectivePlatforms.map(p => new RegExp(`^${p.trim()}$`, 'i')) } },
+        { 'platforms.platform': { $in: effectivePlatforms.map(p => p.trim().toLowerCase()) } }
       ]
     });
   }
 
+  // Niche filter
+  if (effectiveNiche.trim() !== '') {
+    conditions.push({
+      $or: [
+        { niche: { $elemMatch: { $regex: effectiveNiche, $options: 'i' } } },
+        { categories: { $elemMatch: { $regex: effectiveNiche, $options: 'i' } } },
+        { bio: { $regex: effectiveNiche, $options: 'i' } }
+      ]
+    });
+  }
+
+  // Scope-based search (search scope keywords in bio/niche)
+  if (effectiveScope.trim() !== '') {
+    const scopeWords = effectiveScope.split(/\s+/).filter(w => w.length > 3);
+    if (scopeWords.length > 0) {
+      const scopeConditions = scopeWords.map(word => ({
+        $or: [
+          { bio: { $regex: word, $options: 'i' } },
+          { niche: { $elemMatch: { $regex: word, $options: 'i' } } },
+          { categories: { $elemMatch: { $regex: word, $options: 'i' } } }
+        ]
+      }));
+      // Match ANY scope word
+      conditions.push({ $or: scopeConditions });
+    }
+  }
+
   // Campaign objective filters
-  if (campaignObjective === 'awareness') {
-    conditions.push({ followers: { $gte: 50000 } });
-    conditions.push({ engagement: { $gte: 2 } });
+  if (effectiveObjective === 'brand_awareness' || effectiveObjective === 'awareness') {
     sort = { followers: -1 };
-  } else if (campaignObjective === 'sales') {
-    conditions.push({ engagement: { $gte: 4 } });
-    sort = { engagement: -1, followers: -1 };
-  } else {
-    conditions.push({ followers: { $gte: 10000 } });
+  } else if (effectiveObjective === 'increase_sales' || effectiveObjective === 'sales') {
     conditions.push({ engagement: { $gte: 3 } });
+    sort = { engagement: -1, followers: -1 };
+  } else if (effectiveObjective === 'engagement') {
+    conditions.push({ engagement: { $gte: 2 } });
+    sort = { engagement: -1 };
+  } else {
     sort = { engagement: -1 };
   }
 
   // Budget filter
   if (budget && parseInt(budget) > 0) {
-    conditions.push({ 'pricing.post': { $lte: parseInt(budget) } });
+    conditions.push({
+      $or: [
+        { 'pricing.post': { $lte: parseInt(budget) } },
+        { 'platforms.pricing.post': { $lte: parseInt(budget) } }
+      ]
+    });
   }
 
-  // Build query
   let query = {};
   if (conditions.length > 0) {
     query.$and = conditions;
@@ -464,16 +620,38 @@ exports.getRecommendations = asyncHandler(async (req, res, next) => {
   // Calculate recommendation scores
   const scoredRecommendations = recommendations.map(influencer => {
     let score = 0;
-    score += Math.min((influencer.engagement || 0) * 4, 40);
+
+    // Engagement (0-30 pts)
+    score += Math.min((influencer.engagement || 0) * 4, 30);
+
+    // Followers (0-25 pts)
     const followers = influencer.followers || 0;
-    if (followers >= 100000) score += 30;
-    else if (followers >= 50000) score += 25;
-    else if (followers >= 25000) score += 20;
-    else if (followers >= 10000) score += 15;
-    else score += 10;
-    score += (influencer.rating || 0) * 4;
+    if (followers >= 100000) score += 25;
+    else if (followers >= 50000) score += 20;
+    else if (followers >= 25000) score += 15;
+    else if (followers >= 10000) score += 10;
+    else score += 5;
+
+    // Rating (0-15 pts)
+    const ratingAvg = influencer.rating?.average || influencer.rating || 0;
+    score += ratingAvg * 3;
+
+    // Collaborations (0-10 pts)
     score += Math.min((influencer.totalCollaborations || 0) * 2, 10);
-    
+
+    // Campaign match bonuses (0-20 pts)
+    if (campaignData) {
+      const inflPlatforms = influencer.platforms
+        ? influencer.platforms.map(p => p.platform)
+        : [influencer.platform].filter(Boolean);
+      const campaignPlatforms = campaignData.targetPlatforms || [];
+      if (inflPlatforms.some(p => campaignPlatforms.includes(p))) score += 10;
+
+      const campaignCountries = campaignData.demographics?.location?.countries || [];
+      const inflCountry = influencer.location?.country || influencer.country || '';
+      if (campaignCountries.some(c => c.toLowerCase() === inflCountry.toLowerCase())) score += 10;
+    }
+
     return {
       ...influencer,
       recommendationScore: Math.min(Math.round(score), 100)

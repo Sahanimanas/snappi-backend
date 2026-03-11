@@ -13,8 +13,40 @@ const campaignInfluencerSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['invited', 'accepted', 'rejected', 'in_progress', 'completed', 'cancelled'],
+    enum: ['invited', 'contacted', 'accepted', 'rejected', 'in_progress', 'completed', 'cancelled'],
     default: 'invited'
+  },
+  contacted: {
+    type: Boolean,
+    default: false
+  },
+  contactedAt: {
+    type: Date
+  },
+  contactMethod: {
+    type: String,
+    enum: ['email', 'whatsapp', 'platform_dm', 'phone', 'other']
+  },
+  contractSigned: {
+    type: Boolean,
+    default: false
+  },
+  contractSignedAt: {
+    type: Date
+  },
+  contractUrl: {
+    type: String,
+    trim: true
+  },
+  briefSent: {
+    type: Boolean,
+    default: false
+  },
+  briefSentAt: {
+    type: Date
+  },
+  dueDate: {
+    type: Date
   },
   compensation: {
     amount: {

@@ -5,7 +5,7 @@ const platformSchema = new mongoose.Schema({
   platform: {
     type: String,
     required: [true, 'Please specify platform'],
-    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'twitch']
+    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'twitch', 'threads']
   },
   username: {
     type: String,
@@ -173,6 +173,23 @@ const influencerSchema = new mongoose.Schema({
     average: { type: Number, min: 0, max: 5, default: 0 },
     count: { type: Number, default: 0 }
   },
+
+  // Reviews from brands after campaign completion
+  reviews: [{
+    campaign: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Campaign'
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    reliability: { type: Number, min: 1, max: 5, required: true },
+    communication: { type: Number, min: 1, max: 5, required: true },
+    overallPerformance: { type: Number, min: 1, max: 5, required: true },
+    comment: { type: String, maxlength: 500 },
+    createdAt: { type: Date, default: Date.now }
+  }],
   
   totalCollaborations: {
     type: Number,

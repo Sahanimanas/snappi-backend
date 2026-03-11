@@ -8,10 +8,16 @@ const {
   deleteCampaign,
   addInfluencerToCampaign,
   removeInfluencerFromCampaign,
+  contactInfluencer,
+  uploadContract,
+  sendBrief,
+  exportCampaigns,
+  getDeliverablesByPlatform,
   getCampaignStats,
   getCampaignPerformance
 } = require('../controllers/campaignController');
 const { protect } = require('../middleware/auth');
+const { uploadContract: uploadMiddleware } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -20,6 +26,8 @@ router.use(protect);
 
 // Static routes MUST come before dynamic :id routes
 router.get('/stats/overview', getCampaignStats);
+router.get('/export', exportCampaigns);
+router.get('/deliverables/:platform', getDeliverablesByPlatform);
 
 router.route('/')
   .get(getCampaigns)
@@ -36,5 +44,10 @@ router.route('/:id/influencers')
   .post(addInfluencerToCampaign);
 
 router.delete('/:id/influencers/:influencerId', removeInfluencerFromCampaign);
+
+// Contact, contract, and brief endpoints
+router.put('/:id/influencers/:influencerId/contact', contactInfluencer);
+router.put('/:id/influencers/:influencerId/contract', uploadMiddleware.single('contract'), uploadContract);
+router.put('/:id/influencers/:influencerId/brief', sendBrief);
 
 module.exports = router;

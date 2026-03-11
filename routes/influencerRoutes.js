@@ -15,7 +15,10 @@ const {
   getInfluencerStats,
   searchInfluencers,
   getCollaboratingInfluencers,
-  getCampaignInfluencers
+  getCampaignInfluencers,
+  addReview,
+  getReviews,
+  getEngagementRate
 } = require('../controllers/influencerController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -26,8 +29,8 @@ router.get('/top/engagement', getTopByEngagement);
 
 // Protected routes - specific paths MUST come before /:id
 router.get('/stats', protect, authorize('admin'), getInfluencerStats);
-router.get('/collaborating', protect, getCollaboratingInfluencers);  // NEW: Get collaborating influencers
-router.get('/campaign/:campaignId', protect, getCampaignInfluencers);  // NEW: Get influencers for campaign
+router.get('/collaborating', protect, getCollaboratingInfluencers);
+router.get('/campaign/:campaignId', protect, getCampaignInfluencers);
 
 // This must come after specific routes (otherwise /collaborating would be treated as :id)
 router.get('/:id', getInfluencer);
@@ -46,5 +49,12 @@ router.delete('/:id/platforms/:platformId', protect, authorize('admin'), removeP
 // Keyword assignment
 router.post('/:id/keywords', protect, authorize('admin'), assignKeywords);
 router.delete('/:id/keywords', protect, authorize('admin'), removeKeywords);
+
+// Reviews & ratings
+router.post('/:id/reviews', protect, addReview);
+router.get('/:id/reviews', getReviews);
+
+// Engagement rate calculation
+router.get('/:id/engagement', getEngagementRate);
 
 module.exports = router;

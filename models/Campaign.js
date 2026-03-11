@@ -32,6 +32,10 @@ const campaignSchema = new mongoose.Schema({
       required: [true, 'Please provide total budget'],
       min: 0
     },
+    currency: {
+      type: String,
+      default: 'USD'
+    },
     spent: {
       type: Number,
       default: 0,
@@ -43,9 +47,17 @@ const campaignSchema = new mongoose.Schema({
       min: 0
     }
   },
+  scope: {
+    type: String,
+    trim: true
+  },
+  successMetrics: {
+    type: String,
+    trim: true
+  },
   targetPlatforms: [{
     type: String,
-    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest']
+    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'threads']
   }],
   demographics: {
     ageRange: [{
@@ -107,6 +119,26 @@ const campaignSchema = new mongoose.Schema({
       default: 0
     },
     totalConversions: {
+      type: Number,
+      default: 0
+    },
+    totalViews: {
+      type: Number,
+      default: 0
+    },
+    totalLikes: {
+      type: Number,
+      default: 0
+    },
+    totalComments: {
+      type: Number,
+      default: 0
+    },
+    totalShares: {
+      type: Number,
+      default: 0
+    },
+    totalSaves: {
       type: Number,
       default: 0
     },

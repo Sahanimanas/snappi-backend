@@ -1,33 +1,51 @@
 const Campaign = require('../models/Campaign');
 const Influencer = require('../models/Influencer');
 const CampaignInfluencer = require('../models/CampaignInfluencer');
+const TrackingLink = require('../models/TrackingLink');
 const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get dashboard overview (main dashboard page)
 // @route   GET /api/dashboard
+// @query   view=itd|in_month (default: itd)
 // @access  Private
 exports.getDashboardOverview = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
+  const view = req.query.view || 'itd'; // 'itd' = Inception-to-Date, 'in_month' = current month only
 
   // ============================================
-  // 1. CAMPAIGN STATS
+  // 1. CAMPAIGN STATS (ITD or In-Month)
   // ============================================
-  
-  // Get all campaigns for this user
-  const allCampaigns = await Campaign.find({ createdBy: userId });
-  
-  // Active campaigns count
-  const activeCampaigns = await Campaign.countDocuments({ 
-    createdBy: userId, 
-    status: 'active' 
-  });
 
-  // Calculate total budget and spent
+  let campaignQuery = { createdBy: userId };
+
+  // For in-month view, only include current month's data
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  if (view === 'in_month') {
+    campaignQuery.createdAt = { $gte: startOfThisMonth };
+  }
+
+  const allCampaigns = await Campaign.find(campaignQuery);
+
+  // For ITD: count all active; for in-month: count active campaigns created this month
+  const activeCampaigns = view === 'in_month'
+    ? allCampaigns.filter(c => c.status === 'active').length
+    : await Campaign.countDocuments({ createdBy: userId, status: 'active' });
+
+  // Calculate totals from campaigns
   let totalBudget = 0;
   let totalSpent = 0;
   let totalReach = 0;
   let totalEngagement = 0;
   let totalConversions = 0;
+  let totalViews = 0;
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalShares = 0;
+  let totalSaves = 0;
 
   allCampaigns.forEach(campaign => {
     if (campaign.budget) {
@@ -38,22 +56,59 @@ exports.getDashboardOverview = asyncHandler(async (req, res, next) => {
       totalReach += campaign.performance.totalReach || 0;
       totalEngagement += campaign.performance.totalEngagement || 0;
       totalConversions += campaign.performance.totalConversions || 0;
+      totalViews += campaign.performance.totalViews || 0;
+      totalLikes += campaign.performance.totalLikes || 0;
+      totalComments += campaign.performance.totalComments || 0;
+      totalShares += campaign.performance.totalShares || 0;
+      totalSaves += campaign.performance.totalSaves || 0;
     }
   });
-// Calculate total reach from ALL influencer followers
-const reachAggregation = await Influencer.aggregate([
-  {
-    $group: {
-      _id: null,
-      totalReach: { $sum: '$followers' },  // Sum all followers
-      totalInfluencers: { $sum: 1 }
+
+  // Also aggregate from tracking links for accurate performance data
+  const campaignIds = allCampaigns.map(c => c._id);
+  const trackingPerformance = await TrackingLink.aggregate([
+    { $match: { campaign: { $in: campaignIds } } },
+    {
+      $group: {
+        _id: null,
+        totalViews: { $sum: '$totalPerformance.totalViews' },
+        totalLikes: { $sum: '$totalPerformance.totalLikes' },
+        totalComments: { $sum: '$totalPerformance.totalComments' },
+        totalShares: { $sum: '$totalPerformance.totalShares' },
+        totalClicks: { $sum: '$totalPerformance.totalClicks' },
+        totalReach: { $sum: '$totalPerformance.totalReach' },
+        totalImpressions: { $sum: '$totalPerformance.totalImpressions' }
+      }
+    }
+  ]);
+
+  if (trackingPerformance[0]) {
+    const tp = trackingPerformance[0];
+    // Use tracking data if it has values (more accurate than campaign aggregates)
+    if (tp.totalViews > 0) totalViews = tp.totalViews;
+    if (tp.totalLikes > 0) totalLikes = tp.totalLikes;
+    if (tp.totalComments > 0) totalComments = tp.totalComments;
+    if (tp.totalShares > 0) totalShares = tp.totalShares;
+    if (tp.totalReach > 0) totalReach = tp.totalReach;
+  }
+
+  // For ITD, also calculate reach from all influencer followers
+  if (view === 'itd') {
+    const reachAggregation = await Influencer.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalReach: { $sum: '$followers' },
+          totalInfluencers: { $sum: 1 }
+        }
+      }
+    ]);
+    if (reachAggregation[0]?.totalReach > totalReach) {
+      totalReach = reachAggregation[0].totalReach;
     }
   }
-]);
 
- totalReach = reachAggregation[0]?.totalReach || 0;
-  // Calculate ROI: ((Revenue - Cost) / Cost) * 100
-  // Assuming each conversion is worth $100 (this can be configured)
+  // Calculate ROI
   const conversionValue = 100;
   const estimatedRevenue = totalConversions * conversionValue;
   const roi = totalSpent > 0 ? ((estimatedRevenue - totalSpent) / totalSpent) * 100 : 0;
@@ -61,72 +116,69 @@ const reachAggregation = await Influencer.aggregate([
   // ============================================
   // 2. MONTH OVER MONTH COMPARISON
   // ============================================
-  
-  const now = new Date();
-  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-  // This month's campaigns
   const thisMonthCampaigns = await Campaign.find({
     createdBy: userId,
     createdAt: { $gte: startOfThisMonth }
   });
 
-  // Last month's campaigns
   const lastMonthCampaigns = await Campaign.find({
     createdBy: userId,
     createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
   });
 
-  // Calculate month-over-month changes
   const thisMonthActive = thisMonthCampaigns.filter(c => c.status === 'active').length;
   const lastMonthActive = lastMonthCampaigns.filter(c => c.status === 'active').length;
   const activeCampaignsChange = thisMonthActive - lastMonthActive;
 
-  let thisMonthReach = 0;
-  let lastMonthReach = 0;
-  let thisMonthSpent = 0;
-  let lastMonthSpent = 0;
+  let thisMonthReach = 0, lastMonthReach = 0;
+  let thisMonthSpent = 0, lastMonthSpent = 0;
+  let thisMonthROI = 0, lastMonthROI = 0;
 
   thisMonthCampaigns.forEach(c => {
     thisMonthReach += c.performance?.totalReach || 0;
     thisMonthSpent += c.budget?.spent || 0;
+    thisMonthROI += c.performance?.roi || 0;
   });
 
   lastMonthCampaigns.forEach(c => {
     lastMonthReach += c.performance?.totalReach || 0;
     lastMonthSpent += c.budget?.spent || 0;
+    lastMonthROI += c.performance?.roi || 0;
   });
 
-  const reachChangePercent = lastMonthReach > 0 
-    ? Math.round(((thisMonthReach - lastMonthReach) / lastMonthReach) * 100) 
+  const reachChangePercent = lastMonthReach > 0
+    ? Math.round(((thisMonthReach - lastMonthReach) / lastMonthReach) * 100)
     : (thisMonthReach > 0 ? 100 : 0);
 
-  const spentChangePercent = lastMonthSpent > 0 
-    ? Math.round(((thisMonthSpent - lastMonthSpent) / lastMonthSpent) * 100) 
+  const spentChangePercent = lastMonthSpent > 0
+    ? Math.round(((thisMonthSpent - lastMonthSpent) / lastMonthSpent) * 100)
     : (thisMonthSpent > 0 ? 100 : 0);
+
+  const roiChangePercent = lastMonthROI > 0
+    ? Math.round(((thisMonthROI - lastMonthROI) / lastMonthROI) * 100)
+    : (thisMonthROI > 0 ? 100 : 0);
 
   // ============================================
   // 3. RECENT CAMPAIGNS (last 5)
   // ============================================
-  
+
   const recentCampaigns = await Campaign.find({ createdBy: userId })
     .sort({ createdAt: -1 })
     .limit(5)
     .lean();
 
-  // Get influencer counts for each campaign
   const recentCampaignsWithInfluencers = await Promise.all(
     recentCampaigns.map(async (campaign) => {
-      const influencerCount = await CampaignInfluencer.countDocuments({ 
-        campaign: campaign._id 
+      const influencerCount = await CampaignInfluencer.countDocuments({
+        campaign: campaign._id
       });
       return {
         _id: campaign._id,
         name: campaign.name,
         status: campaign.status,
         budget: campaign.budget?.total || 0,
+        currency: campaign.budget?.currency || 'USD',
         spent: campaign.budget?.spent || 0,
         influencerCount,
         startDate: campaign.startDate,
@@ -139,18 +191,16 @@ const reachAggregation = await Influencer.aggregate([
   // ============================================
   // 4. TOP PERFORMING INFLUENCERS (by engagement rate)
   // ============================================
-  
+
   const topInfluencers = await Influencer.find({})
-    .sort({ engagement: -1 })  // Sort by engagement rate descending
+    .sort({ engagement: -1 })
     .limit(5)
     .select('name username profileImage followers engagement platform niche verified')
     .lean();
 
-  // Format top influencers with match score
   const formattedTopInfluencers = topInfluencers.map(influencer => {
-    // Calculate match score based on engagement and followers
     let matchScore = 0;
-    matchScore += Math.min((influencer.engagement || 0) * 8, 60); // Up to 60 points for engagement
+    matchScore += Math.min((influencer.engagement || 0) * 8, 60);
     if (influencer.followers >= 1000000) matchScore += 25;
     else if (influencer.followers >= 500000) matchScore += 20;
     else if (influencer.followers >= 100000) matchScore += 15;
@@ -175,10 +225,11 @@ const reachAggregation = await Influencer.aggregate([
   // ============================================
   // 5. RESPONSE
   // ============================================
-  
+
   res.status(200).json({
     success: true,
     data: {
+      view, // 'itd' or 'in_month'
       stats: {
         activeCampaigns: {
           value: activeCampaigns,
@@ -194,7 +245,7 @@ const reachAggregation = await Influencer.aggregate([
         campaignROI: {
           value: Math.round(roi),
           formatted: `${Math.round(roi)}%`,
-          changePercent: 12, // Placeholder - calculate actual change if needed
+          changePercent: roiChangePercent,
           changeLabel: 'from last month'
         },
         totalSpend: {
@@ -204,13 +255,23 @@ const reachAggregation = await Influencer.aggregate([
           changeLabel: 'from last month'
         }
       },
+      performanceMetrics: {
+        views: totalViews,
+        likes: totalLikes,
+        comments: totalComments,
+        shares: totalShares,
+        saves: totalSaves,
+        clicks: trackingPerformance[0]?.totalClicks || 0
+      },
       recentCampaigns: recentCampaignsWithInfluencers,
       topPerformingInfluencers: formattedTopInfluencers,
       summary: {
-        totalCampaigns: allCampaigns.length,
+        totalCampaigns: view === 'itd'
+          ? await Campaign.countDocuments({ createdBy: userId })
+          : allCampaigns.length,
         totalBudget: totalBudget,
         totalInfluencersWorkedWith: await CampaignInfluencer.countDocuments({
-          campaign: { $in: allCampaigns.map(c => c._id) }
+          campaign: { $in: campaignIds }
         })
       }
     }
@@ -219,13 +280,25 @@ const reachAggregation = await Influencer.aggregate([
 
 // @desc    Get dashboard stats only (lightweight endpoint)
 // @route   GET /api/dashboard/stats
+// @query   view=itd|in_month
 // @access  Private
 exports.getDashboardStats = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
+  const view = req.query.view || 'itd';
+
+  let campaignQuery = { createdBy: userId };
+
+  if (view === 'in_month') {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    campaignQuery.createdAt = { $gte: startOfMonth };
+  }
 
   const [activeCampaigns, allCampaigns] = await Promise.all([
-    Campaign.countDocuments({ createdBy: userId, status: 'active' }),
-    Campaign.find({ createdBy: userId }).select('budget performance').lean()
+    view === 'in_month'
+      ? Campaign.countDocuments({ ...campaignQuery, status: 'active' })
+      : Campaign.countDocuments({ createdBy: userId, status: 'active' }),
+    Campaign.find(campaignQuery).select('budget performance').lean()
   ]);
 
   let totalSpent = 0;
@@ -238,7 +311,6 @@ exports.getDashboardStats = asyncHandler(async (req, res, next) => {
     totalConversions += campaign.performance?.totalConversions || 0;
   });
 
-  // Calculate ROI
   const conversionValue = 100;
   const estimatedRevenue = totalConversions * conversionValue;
   const roi = totalSpent > 0 ? ((estimatedRevenue - totalSpent) / totalSpent) * 100 : 0;
@@ -246,6 +318,7 @@ exports.getDashboardStats = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     data: {
+      view,
       activeCampaigns,
       totalReach: formatNumber(totalReach),
       totalReachRaw: totalReach,
@@ -253,6 +326,115 @@ exports.getDashboardStats = asyncHandler(async (req, res, next) => {
       campaignROIRaw: Math.round(roi),
       totalSpend: formatCurrency(totalSpent),
       totalSpendRaw: totalSpent
+    }
+  });
+});
+
+// @desc    Export dashboard data as JSON (for CSV conversion on frontend)
+// @route   GET /api/dashboard/export
+// @query   view=itd|in_month
+// @access  Private
+exports.exportDashboardData = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+  const view = req.query.view || 'itd';
+
+  let campaignQuery = { createdBy: userId };
+  if (view === 'in_month') {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    campaignQuery.createdAt = { $gte: startOfMonth };
+  }
+
+  // Get all campaigns with full details
+  const campaigns = await Campaign.find(campaignQuery)
+    .populate('influencers', 'name email')
+    .lean();
+
+  // Get tracking performance per campaign
+  const campaignIds = campaigns.map(c => c._id);
+  const trackingStats = await TrackingLink.aggregate([
+    { $match: { campaign: { $in: campaignIds } } },
+    {
+      $group: {
+        _id: '$campaign',
+        totalLinks: { $sum: 1 },
+        totalPosts: { $sum: { $size: { $ifNull: ['$submittedPosts', []] } } },
+        totalViews: { $sum: '$totalPerformance.totalViews' },
+        totalLikes: { $sum: '$totalPerformance.totalLikes' },
+        totalComments: { $sum: '$totalPerformance.totalComments' },
+        totalShares: { $sum: '$totalPerformance.totalShares' },
+        totalClicks: { $sum: '$totalPerformance.totalClicks' },
+        totalReach: { $sum: '$totalPerformance.totalReach' }
+      }
+    }
+  ]);
+
+  const trackingMap = {};
+  trackingStats.forEach(t => { trackingMap[t._id.toString()] = t; });
+
+  // Get influencer counts
+  const influencerCounts = await CampaignInfluencer.aggregate([
+    { $match: { campaign: { $in: campaignIds } } },
+    { $group: { _id: '$campaign', count: { $sum: 1 } } }
+  ]);
+  const influencerCountMap = {};
+  influencerCounts.forEach(ic => { influencerCountMap[ic._id.toString()] = ic.count; });
+
+  // Build export data
+  const exportData = campaigns.map(campaign => {
+    const tracking = trackingMap[campaign._id.toString()] || {};
+    return {
+      campaignName: campaign.name,
+      status: campaign.status,
+      objective: campaign.objective,
+      campaignType: campaign.campaignType,
+      startDate: campaign.startDate,
+      endDate: campaign.endDate,
+      currency: campaign.budget?.currency || 'USD',
+      totalBudget: campaign.budget?.total || 0,
+      spent: campaign.budget?.spent || 0,
+      remaining: campaign.budget?.remaining || 0,
+      influencerCount: influencerCountMap[campaign._id.toString()] || 0,
+      targetPlatforms: (campaign.targetPlatforms || []).join(', '),
+      // Performance
+      reach: campaign.performance?.totalReach || tracking.totalReach || 0,
+      engagement: campaign.performance?.totalEngagement || 0,
+      views: campaign.performance?.totalViews || tracking.totalViews || 0,
+      likes: campaign.performance?.totalLikes || tracking.totalLikes || 0,
+      comments: campaign.performance?.totalComments || tracking.totalComments || 0,
+      shares: campaign.performance?.totalShares || tracking.totalShares || 0,
+      clicks: campaign.performance?.totalClicks || tracking.totalClicks || 0,
+      conversions: campaign.performance?.totalConversions || 0,
+      roi: campaign.performance?.roi || 0,
+      // Tracking
+      trackingLinks: tracking.totalLinks || 0,
+      totalPosts: tracking.totalPosts || 0,
+      createdAt: campaign.createdAt
+    };
+  });
+
+  // Calculate totals
+  const totals = exportData.reduce((acc, row) => {
+    acc.totalBudget += row.totalBudget;
+    acc.spent += row.spent;
+    acc.views += row.views;
+    acc.likes += row.likes;
+    acc.comments += row.comments;
+    acc.shares += row.shares;
+    acc.clicks += row.clicks;
+    acc.reach += row.reach;
+    acc.conversions += row.conversions;
+    return acc;
+  }, { totalBudget: 0, spent: 0, views: 0, likes: 0, comments: 0, shares: 0, clicks: 0, reach: 0, conversions: 0 });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      view,
+      exportDate: new Date().toISOString(),
+      campaigns: exportData,
+      totals,
+      campaignCount: exportData.length
     }
   });
 });
@@ -271,15 +453,16 @@ exports.getRecentCampaigns = asyncHandler(async (req, res, next) => {
 
   const campaignsWithDetails = await Promise.all(
     recentCampaigns.map(async (campaign) => {
-      const influencerCount = await CampaignInfluencer.countDocuments({ 
-        campaign: campaign._id 
+      const influencerCount = await CampaignInfluencer.countDocuments({
+        campaign: campaign._id
       });
-      
+
       return {
         _id: campaign._id,
         name: campaign.name,
         status: campaign.status,
         budget: campaign.budget?.total || 0,
+        currency: campaign.budget?.currency || 'USD',
         spent: campaign.budget?.spent || 0,
         remaining: campaign.budget?.remaining || 0,
         influencerCount,
@@ -304,9 +487,8 @@ exports.getRecentCampaigns = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getTopPerformingInfluencers = asyncHandler(async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 5;
-  const sortBy = req.query.sortBy || 'engagement'; // engagement, followers, matchScore
+  const sortBy = req.query.sortBy || 'engagement';
 
-  // Determine sort field
   let sortField = {};
   switch (sortBy) {
     case 'followers':
@@ -327,22 +509,15 @@ exports.getTopPerformingInfluencers = asyncHandler(async (req, res, next) => {
     .select('name username profileImage followers engagement platform niche verified rating totalCollaborations')
     .lean();
 
-  // Calculate match scores
   const influencersWithScores = topInfluencers.map(influencer => {
     let matchScore = 0;
-    
-    // Engagement score (0-60 points) - heavily weighted
     matchScore += Math.min((influencer.engagement || 0) * 8, 60);
-    
-    // Follower tier score (0-25 points)
     const followers = influencer.followers || 0;
     if (followers >= 1000000) matchScore += 25;
     else if (followers >= 500000) matchScore += 20;
     else if (followers >= 100000) matchScore += 15;
     else if (followers >= 10000) matchScore += 10;
     else matchScore += 5;
-    
-    // Verified bonus (15 points)
     if (influencer.verified) matchScore += 15;
 
     return {
@@ -374,7 +549,6 @@ exports.getTopPerformingInfluencers = asyncHandler(async (req, res, next) => {
 exports.getInfluencerDashboard = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
 
-  // Find influencer profile linked to this user
   const influencer = await Influencer.findOne({ addedBy: userId }).lean();
 
   if (!influencer) {
@@ -387,9 +561,8 @@ exports.getInfluencerDashboard = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Get campaigns this influencer is part of
-  const campaignInfluencers = await CampaignInfluencer.find({ 
-    influencer: influencer._id 
+  const campaignInfluencers = await CampaignInfluencer.find({
+    influencer: influencer._id
   })
     .populate('campaign', 'name status budget startDate endDate')
     .lean();
@@ -401,7 +574,6 @@ exports.getInfluencerDashboard = asyncHandler(async (req, res, next) => {
     ci => ci.campaign?.status === 'completed'
   );
 
-  // Calculate total earnings
   let totalEarnings = 0;
   let pendingPayments = 0;
   campaignInfluencers.forEach(ci => {
@@ -451,10 +623,9 @@ exports.getDashboardAnalytics = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
   const { period = '30days' } = req.query;
 
-  // Calculate date range
   let startDate;
   const endDate = new Date();
-  
+
   switch (period) {
     case '7days':
       startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -472,19 +643,16 @@ exports.getDashboardAnalytics = asyncHandler(async (req, res, next) => {
       startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   }
 
-  // Get campaigns in date range
   const campaigns = await Campaign.find({
     createdBy: userId,
     createdAt: { $gte: startDate, $lte: endDate }
   }).lean();
 
-  // Campaign status breakdown
   const statusBreakdown = await Campaign.aggregate([
     { $match: { createdBy: userId } },
     { $group: { _id: '$status', count: { $sum: 1 } } }
   ]);
 
-  // Platform breakdown
   const platformBreakdown = await Campaign.aggregate([
     { $match: { createdBy: userId } },
     { $unwind: '$targetPlatforms' },
@@ -492,16 +660,15 @@ exports.getDashboardAnalytics = asyncHandler(async (req, res, next) => {
     { $sort: { count: -1 } }
   ]);
 
-  // Monthly spend trend (last 6 months)
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
   const monthlySpend = await Campaign.aggregate([
-    { 
-      $match: { 
+    {
+      $match: {
         createdBy: userId,
         createdAt: { $gte: sixMonthsAgo }
-      } 
+      }
     },
     {
       $group: {
@@ -546,7 +713,7 @@ exports.getDashboardAnalytics = asyncHandler(async (req, res, next) => {
 
 function formatNumber(num) {
   if (num === null || num === undefined) return '0';
-  
+
   if (num >= 1000000000) {
     return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
   }
@@ -561,7 +728,7 @@ function formatNumber(num) {
 
 function formatCurrency(amount, currency = 'USD') {
   if (amount === null || amount === undefined) return '$0';
-  
+
   if (amount >= 1000000) {
     return '$' + (amount / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   }

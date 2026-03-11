@@ -836,6 +836,163 @@ const searchInfluencers = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Add a review/rating for an influencer after campaign completion
+// @route   POST /api/influencers/:id/reviews
+// @access  Private
+const addReview = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { campaignId, reliability, communication, overallPerformance, comment } = req.body;
+
+  if (!reliability || !communication || !overallPerformance) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide ratings for reliability, communication, and overall performance (1-5)'
+    });
+  }
+
+  const influencer = await Influencer.findById(id);
+  if (!influencer) {
+    return res.status(404).json({ success: false, message: 'Influencer not found' });
+  }
+
+  // Verify the campaign is completed and user is the campaign owner
+  if (campaignId) {
+    const campaign = await Campaign.findById(campaignId);
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+    if (campaign.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to review for this campaign' });
+    }
+
+    // Check if already reviewed for this campaign
+    const existingReview = influencer.reviews?.find(
+      r => r.campaign?.toString() === campaignId
+    );
+    if (existingReview) {
+      return res.status(400).json({ success: false, message: 'Already reviewed this influencer for this campaign' });
+    }
+  }
+
+  // Add review
+  if (!influencer.reviews) influencer.reviews = [];
+  influencer.reviews.push({
+    campaign: campaignId || null,
+    reviewedBy: req.user.id,
+    reliability: Math.min(Math.max(reliability, 1), 5),
+    communication: Math.min(Math.max(communication, 1), 5),
+    overallPerformance: Math.min(Math.max(overallPerformance, 1), 5),
+    comment: comment || ''
+  });
+
+  // Recalculate average rating
+  const totalReviews = influencer.reviews.length;
+  const avgRating = influencer.reviews.reduce((sum, r) => {
+    return sum + ((r.reliability + r.communication + r.overallPerformance) / 3);
+  }, 0) / totalReviews;
+
+  influencer.rating = {
+    average: Math.round(avgRating * 10) / 10,
+    count: totalReviews
+  };
+
+  await influencer.save();
+
+  res.status(201).json({
+    success: true,
+    message: 'Review added successfully',
+    data: {
+      rating: influencer.rating,
+      review: influencer.reviews[influencer.reviews.length - 1]
+    }
+  });
+});
+
+// @desc    Get reviews for an influencer
+// @route   GET /api/influencers/:id/reviews
+// @access  Public
+const getReviews = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const influencer = await Influencer.findById(id)
+    .select('name rating reviews')
+    .populate('reviews.reviewedBy', 'name company')
+    .populate('reviews.campaign', 'name');
+
+  if (!influencer) {
+    return res.status(404).json({ success: false, message: 'Influencer not found' });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      name: influencer.name,
+      rating: influencer.rating,
+      reviews: influencer.reviews || []
+    }
+  });
+});
+
+// @desc    Calculate real engagement rate for an influencer
+// @route   GET /api/influencers/:id/engagement
+// @access  Public
+const getEngagementRate = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const influencer = await Influencer.findById(id);
+  if (!influencer) {
+    return res.status(404).json({ success: false, message: 'Influencer not found' });
+  }
+
+  // Calculate engagement rate: (total likes + comments + shares + saves) / total followers
+  let totalFollowers = 0;
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalShares = 0; // Not available in platform schema, but included for future
+  let totalSaves = 0;
+
+  if (influencer.platforms && influencer.platforms.length > 0) {
+    influencer.platforms.forEach(p => {
+      totalFollowers += p.followers || 0;
+      totalLikes += p.avgLikes || 0;
+      totalComments += p.avgComments || 0;
+    });
+  }
+
+  const totalInteractions = totalLikes + totalComments + totalShares + totalSaves;
+  const engagementRate = totalFollowers > 0
+    ? ((totalInteractions / totalFollowers) * 100)
+    : 0;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      influencerId: influencer._id,
+      name: influencer.name,
+      engagementRate: Math.round(engagementRate * 100) / 100,
+      breakdown: {
+        totalFollowers,
+        totalLikes,
+        totalComments,
+        totalShares,
+        totalSaves,
+        totalInteractions
+      },
+      formula: '(likes + comments + shares + saves) / followers * 100',
+      platforms: influencer.platforms.map(p => ({
+        platform: p.platform,
+        followers: p.followers,
+        avgLikes: p.avgLikes,
+        avgComments: p.avgComments,
+        storedEngagement: p.engagement,
+        calculatedEngagement: p.followers > 0
+          ? Math.round(((p.avgLikes + p.avgComments) / p.followers) * 10000) / 100
+          : 0
+      }))
+    }
+  });
+});
+
 module.exports = {
   getInfluencers,
   getInfluencer,
@@ -851,5 +1008,8 @@ module.exports = {
   getInfluencerStats,
   searchInfluencers,
   getCollaboratingInfluencers,
-  getCampaignInfluencers
+  getCampaignInfluencers,
+  addReview,
+  getReviews,
+  getEngagementRate
 };
