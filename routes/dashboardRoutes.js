@@ -8,7 +8,8 @@ const {
   getRecentCampaigns,
   getTopPerformingInfluencers,
   getInfluencerDashboard,
-  getDashboardAnalytics
+  getDashboardAnalytics,
+  exportDashboardData
 } = require('../controllers/dashboardController');
 
 // All routes are protected
@@ -40,6 +41,10 @@ router.get('/influencers/top', getTopPerformingInfluencers);
 // @desc    Get analytics data for charts
 // @query   period (7days|30days|90days|12months)
 router.get('/analytics', getDashboardAnalytics);
+
+// @route   GET /api/dashboard/export
+// @desc    Export dashboard data as CSV
+router.get('/export', exportDashboardData);
 
 // @route   GET /api/dashboard/influencer
 // @desc    Get dashboard for influencer users

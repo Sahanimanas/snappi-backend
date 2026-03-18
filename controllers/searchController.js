@@ -21,7 +21,7 @@ const STOP_WORDS = new Set([
   'get', 'give', 'like', 'plus'
 ]);
 
-const KNOWN_PLATFORMS = ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'twitch'];
+const KNOWN_PLATFORMS = ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'twitch', 'threads'];
 
 const COUNTRY_ALIASES = {
   'usa': 'United States', 'us': 'United States', 'america': 'United States', 'united states': 'United States',
@@ -171,6 +171,13 @@ function parseSearchQuery(searchText) {
   // 4) Filter out stop words → these are the meaningful search terms
   result.searchWords = remainingWords.filter(w => w.length > 1 && !STOP_WORDS.has(w));
 
+  // 5) Also keep the full phrase (without platform/country/follower extractions) for phrase matching
+  // This handles cases like "make up" where individual words are stop words but the phrase is meaningful
+  const cleanedPhrase = remainingWords.join(' ').trim();
+  if (cleanedPhrase.length > 2) {
+    result.fullPhrase = cleanedPhrase;
+  }
+
   return result;
 }
 
@@ -209,25 +216,51 @@ exports.searchInfluencers = asyncHandler(async (req, res, next) => {
     const parsed = parseSearchQuery(search);
     console.log('Parsed search query:', parsed);
 
-    // -- A) Match each meaningful word against Keywords collection --
-    if (parsed.searchWords.length > 0) {
-      const wordRegexes = parsed.searchWords.map(w => ({
-        $or: [
+    // -- A) Match each meaningful word AND full phrase against Keywords collection --
+    const searchTerms = [...parsed.searchWords];
+    // Also search for the full phrase and the original search text for better matching
+    const phraseTerms = [parsed.fullPhrase, search.trim().toLowerCase()].filter(Boolean);
+
+    if (searchTerms.length > 0 || phraseTerms.length > 0) {
+      const keywordQueries = [];
+      for (const w of searchTerms) {
+        keywordQueries.push(
           { name: { $regex: w, $options: 'i' } },
           { displayName: { $regex: w, $options: 'i' } }
-        ]
-      }));
+        );
+      }
+      for (const phrase of phraseTerms) {
+        keywordQueries.push(
+          { name: { $regex: phrase, $options: 'i' } },
+          { displayName: { $regex: phrase, $options: 'i' } }
+        );
+      }
 
       const matchingKeywords = await Keyword.find({
-        $or: wordRegexes,
+        $or: keywordQueries,
         isActive: true
       }).select('_id');
       const matchingKeywordIds = matchingKeywords.map(k => k._id);
       allMatchedKeywordIds.push(...matchingKeywordIds);
 
-      // Build OR conditions: match any word against name, bio, niche, categories, keywords
+      // Build OR conditions: match any word/phrase against name, bio, niche, categories, keywords
       const wordConditions = [];
-      for (const word of parsed.searchWords) {
+
+      // Full phrase matching (highest priority - handles "make up", "skin care", etc.)
+      for (const phrase of phraseTerms) {
+        if (phrase && phrase.length > 1) {
+          wordConditions.push(
+            { name: { $regex: phrase, $options: 'i' } },
+            { 'platforms.username': { $regex: phrase, $options: 'i' } },
+            { bio: { $regex: phrase, $options: 'i' } },
+            { niche: { $elemMatch: { $regex: phrase, $options: 'i' } } },
+            { categories: { $elemMatch: { $regex: phrase, $options: 'i' } } }
+          );
+        }
+      }
+
+      // Individual word matching
+      for (const word of searchTerms) {
         wordConditions.push(
           { name: { $regex: word, $options: 'i' } },
           { 'platforms.username': { $regex: word, $options: 'i' } },
@@ -241,7 +274,9 @@ exports.searchInfluencers = asyncHandler(async (req, res, next) => {
         wordConditions.push({ keywords: { $in: matchingKeywordIds } });
       }
 
-      conditions.push({ $or: wordConditions });
+      if (wordConditions.length > 0) {
+        conditions.push({ $or: wordConditions });
+      }
     }
 
     // -- B) Apply extracted follower count from search text (only if not already set by filters) --

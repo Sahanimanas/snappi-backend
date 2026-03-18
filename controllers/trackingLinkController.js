@@ -3,8 +3,10 @@ const TrackingLink = require('../models/TrackingLink');
 const Campaign = require('../models/Campaign');
 const Influencer = require('../models/Influencer');
 const CampaignInfluencer = require('../models/CampaignInfluencer');
+const User = require('../models/User');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
+const { sendEmail, generatePostSubmissionEmail, generatePostApprovalEmail } = require('../utils/sendEmail');
 
 // Helper to get user ID from request
 const getUserId = (req) => {
@@ -295,9 +297,35 @@ exports.submitPostByCode = asyncHandler(async (req, res, next) => {
   await trackingLink.save();
 
   await trackingLink.populate([
-    { path: 'campaign', select: 'name status' },
+    { path: 'campaign', select: 'name status createdBy' },
     { path: 'influencer', select: 'name email profileImage' }
   ]);
+
+  // Send email notification to the campaign owner
+  try {
+    if (trackingLink.campaign?.createdBy) {
+      const campaignOwner = await User.findById(trackingLink.campaign.createdBy).select('name email');
+      if (campaignOwner?.email) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const emailData = generatePostSubmissionEmail({
+          brandName: campaignOwner.name || 'Brand',
+          influencerName: trackingLink.influencer?.name || 'Influencer',
+          campaignName: trackingLink.campaign?.name || 'Campaign',
+          platform: platform,
+          postUrl: postUrl,
+          dashboardUrl: `${frontendUrl}/tracking`
+        });
+        await sendEmail({
+          to: campaignOwner.email,
+          subject: emailData.subject,
+          html: emailData.html,
+          text: emailData.text
+        });
+      }
+    }
+  } catch (emailError) {
+    console.error('Failed to send post submission notification email:', emailError.message);
+  }
 
   res.status(201).json({
     success: true,
@@ -435,6 +463,36 @@ exports.updatePostStatus = asyncHandler(async (req, res, next) => {
   }
 
   await trackingLink.save();
+
+  // Send email notification to the influencer on approval/rejection
+  if (status === 'approved' || status === 'rejected') {
+    try {
+      await trackingLink.populate([
+        { path: 'campaign', select: 'name' },
+        { path: 'influencer', select: 'name email' }
+      ]);
+      const influencerEmail = trackingLink.influencer?.email;
+      if (influencerEmail) {
+        const emailData = generatePostApprovalEmail({
+          influencerName: trackingLink.influencer?.name || 'Influencer',
+          influencerEmail: influencerEmail,
+          campaignName: trackingLink.campaign?.name || 'Campaign',
+          platform: post.platform || '',
+          postUrl: post.postUrl || '',
+          status: status,
+          reviewNotes: reviewNotes || ''
+        });
+        await sendEmail({
+          to: influencerEmail,
+          subject: emailData.subject,
+          html: emailData.html,
+          text: emailData.text
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send post approval notification email:', emailError.message);
+    }
+  }
 
   res.status(200).json({
     success: true,

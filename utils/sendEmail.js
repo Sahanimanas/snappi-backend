@@ -173,8 +173,122 @@ You can now proceed with the collaboration.
   };
 };
 
+const generatePostSubmissionEmail = ({
+  brandName,
+  influencerName,
+  campaignName,
+  platform,
+  postUrl,
+  dashboardUrl
+}) => {
+  return {
+    subject: `New Post Submitted - ${influencerName} for "${campaignName}"`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; background: #fff; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); padding: 30px; text-align: center; }
+          .header h1 { color: #fff; margin: 0; font-size: 24px; }
+          .content { padding: 30px; }
+          .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin: 20px 0; }
+          .btn { display: inline-block; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; background: #3b82f6; color: #fff; }
+          .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>New Content Submitted</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${brandName},</p>
+            <p><strong>${influencerName}</strong> has submitted a new post for your campaign <strong>"${campaignName}"</strong>.</p>
+            <div class="info-box">
+              <p><strong>Platform:</strong> ${platform}</p>
+              <p><strong>Post URL:</strong> <a href="${postUrl}">${postUrl}</a></p>
+              <p><strong>Status:</strong> Pending Review</p>
+            </div>
+            <p>Please review and approve or reject this submission in your dashboard.</p>
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="${dashboardUrl}" class="btn">Review Submission</a>
+            </p>
+          </div>
+          <div class="footer">
+            <p>This notification was sent via Snappi - Influencer Marketing Platform</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `New post submitted by ${influencerName} for campaign "${campaignName}" on ${platform}. Post URL: ${postUrl}. Please review in your dashboard: ${dashboardUrl}`
+  };
+};
+
+const generatePostApprovalEmail = ({
+  influencerName,
+  influencerEmail,
+  campaignName,
+  platform,
+  postUrl,
+  status,
+  reviewNotes
+}) => {
+  const isApproved = status === 'approved';
+  const statusColor = isApproved ? '#10b981' : '#ef4444';
+  const statusText = isApproved ? 'Approved' : 'Rejected';
+
+  return {
+    subject: `Your Post Has Been ${statusText} - "${campaignName}"`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; background: #fff; }
+          .header { background: ${statusColor}; padding: 30px; text-align: center; }
+          .header h1 { color: #fff; margin: 0; font-size: 24px; }
+          .content { padding: 30px; }
+          .status-box { background: ${isApproved ? '#ecfdf5' : '#fef2f2'}; border: 1px solid ${isApproved ? '#a7f3d0' : '#fecaca'}; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+          .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Post ${statusText}</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${influencerName},</p>
+            <div class="status-box">
+              <h2 style="color: ${statusColor}; margin: 0 0 10px 0;">Your post has been ${statusText.toLowerCase()}</h2>
+              <p style="margin: 0;">Campaign: <strong>${campaignName}</strong></p>
+            </div>
+            <p><strong>Platform:</strong> ${platform}</p>
+            <p><strong>Post:</strong> <a href="${postUrl}">${postUrl}</a></p>
+            ${reviewNotes ? `<p><strong>Notes:</strong> ${reviewNotes}</p>` : ''}
+            ${isApproved ? '<p>Your post metrics will now be tracked. Thank you for your contribution!</p>' : '<p>Please review the feedback and submit an updated post if needed.</p>'}
+          </div>
+          <div class="footer">
+            <p>This notification was sent via Snappi - Influencer Marketing Platform</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `Your post for campaign "${campaignName}" has been ${statusText.toLowerCase()}.${reviewNotes ? ` Notes: ${reviewNotes}` : ''}`
+  };
+};
+
 module.exports = {
   sendEmail,
   generateContractEmail,
-  generateAcceptanceNotificationEmail
+  generateAcceptanceNotificationEmail,
+  generatePostSubmissionEmail,
+  generatePostApprovalEmail
 };

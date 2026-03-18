@@ -5,7 +5,7 @@ const platformSchema = new mongoose.Schema({
   platform: {
     type: String,
     required: [true, 'Please specify platform'],
-    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'twitch']
+    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'twitch', 'threads']
   },
   username: {
     type: String,
@@ -39,6 +39,16 @@ const platformSchema = new mongoose.Schema({
     min: 0
   },
   avgComments: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  avgShares: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  avgSaves: {
     type: Number,
     default: 0,
     min: 0
@@ -216,8 +226,34 @@ influencerSchema.virtual('totalFollowers').get(function() {
 });
 
 // Average engagement across all platforms
+// Formula: (total likes + comments + shares + saves) / total followers * 100
+// Falls back to stored engagement rate if per-post metrics are not available
 influencerSchema.virtual('avgEngagement').get(function() {
   if (!this.platforms || this.platforms.length === 0) return 0;
+
+  let totalInteractions = 0;
+  let totalFollowers = 0;
+  let hasMetrics = false;
+
+  this.platforms.forEach(p => {
+    const likes = p.avgLikes || 0;
+    const comments = p.avgComments || 0;
+    const shares = p.avgShares || 0;
+    const saves = p.avgSaves || 0;
+    const followers = p.followers || 0;
+
+    if (likes > 0 || comments > 0 || shares > 0 || saves > 0) {
+      hasMetrics = true;
+      totalInteractions += likes + comments + shares + saves;
+    }
+    totalFollowers += followers;
+  });
+
+  if (hasMetrics && totalFollowers > 0) {
+    return Math.round((totalInteractions / totalFollowers) * 100 * 100) / 100;
+  }
+
+  // Fallback: average of stored engagement percentages
   const total = this.platforms.reduce((sum, p) => sum + (p.engagement || 0), 0);
   return Math.round((total / this.platforms.length) * 100) / 100;
 });

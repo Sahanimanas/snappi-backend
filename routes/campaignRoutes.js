@@ -9,7 +9,8 @@ const {
   addInfluencerToCampaign,
   removeInfluencerFromCampaign,
   getCampaignStats,
-  getCampaignPerformance
+  getCampaignPerformance,
+  exportCampaigns
 } = require('../controllers/campaignController');
 const { protect } = require('../middleware/auth');
 
@@ -20,6 +21,7 @@ router.use(protect);
 
 // Static routes MUST come before dynamic :id routes
 router.get('/stats/overview', getCampaignStats);
+router.get('/export', exportCampaigns);
 
 router.route('/')
   .get(getCampaigns)

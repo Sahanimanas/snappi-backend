@@ -1,6 +1,7 @@
 // controllers/campaignController.js
 const Campaign = require('../models/Campaign');
 const CampaignInfluencer = require('../models/CampaignInfluencer');
+const TrackingLink = require('../models/TrackingLink');
 const { asyncHandler, getPagination } = require('../utils/helpers');
 const mongoose = require('mongoose');
 
@@ -13,6 +14,8 @@ exports.getCampaigns = asyncHandler(async (req, res, next) => {
     limit = 10,
     status,
     search,
+    platform,
+    objective,
     sortBy = 'createdAt',
     sortOrder = 'desc'
   } = req.query;
@@ -25,6 +28,14 @@ exports.getCampaigns = asyncHandler(async (req, res, next) => {
 
   if (search) {
     query.name = { $regex: search, $options: 'i' };
+  }
+
+  if (platform) {
+    query.targetPlatforms = { $in: [new RegExp(`^${platform}$`, 'i')] };
+  }
+
+  if (objective) {
+    query.objective = objective;
   }
 
   const total = await Campaign.countDocuments(query);
@@ -353,6 +364,44 @@ exports.getCampaignStats = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Export campaigns as CSV
+// @route   GET /api/campaigns/export
+// @access  Private
+exports.exportCampaigns = asyncHandler(async (req, res, next) => {
+  const campaigns = await Campaign.find({ createdBy: req.user.id })
+    .populate('influencers', 'name')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const rows = [
+    ['Name', 'Status', 'Objective', 'Type', 'Currency', 'Budget', 'Spent', 'Remaining', 'Platforms', 'Start Date', 'End Date', 'Influencers', 'Reach', 'Engagement', 'Scope', 'Created At'],
+    ...campaigns.map(c => [
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      c.status || '',
+      c.objective || '',
+      c.campaignType || '',
+      c.currency || 'USD',
+      c.budget?.total || 0,
+      c.budget?.spent || 0,
+      c.budget?.remaining || 0,
+      `"${(c.targetPlatforms || []).join('; ')}"`,
+      c.startDate ? new Date(c.startDate).toLocaleDateString() : '',
+      c.endDate ? new Date(c.endDate).toLocaleDateString() : '',
+      c.influencers?.length || 0,
+      c.performance?.totalReach || 0,
+      c.performance?.totalEngagement || 0,
+      `"${(c.scope || '').replace(/"/g, '""')}"`,
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''
+    ])
+  ];
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=campaigns-export.csv');
+  res.status(200).send(csv);
+});
+
 // @desc    Get campaign performance
 // @route   GET /api/campaigns/:id/performance
 // @access  Private
@@ -381,6 +430,37 @@ exports.getCampaignPerformance = asyncHandler(async (req, res, next) => {
     .populate('influencer', 'name username platforms profileImage totalFollowers')
     .select('influencer performance deliverables status compensation invitedAt acceptedAt completedAt');
 
+  // Get tracking links for this campaign to aggregate per-post metrics
+  const trackingLinks = await TrackingLink.find({ campaign: id })
+    .select('submittedPosts totalPerformance influencer')
+    .populate('influencer', 'name');
+
+  // Aggregate metrics from all approved posts
+  let totalViews = 0, totalLikes = 0, totalComments = 0, totalShares = 0, totalSaves = 0, totalClicks = 0;
+  const allPosts = [];
+
+  trackingLinks.forEach(link => {
+    if (link.totalPerformance) {
+      totalViews += link.totalPerformance.totalViews || 0;
+      totalLikes += link.totalPerformance.totalLikes || 0;
+      totalComments += link.totalPerformance.totalComments || 0;
+      totalShares += link.totalPerformance.totalShares || 0;
+      totalClicks += link.totalPerformance.totalClicks || 0;
+    }
+    if (link.submittedPosts) {
+      link.submittedPosts.forEach(post => {
+        allPosts.push({
+          ...post.toObject(),
+          influencerName: link.influencer?.name || 'Unknown'
+        });
+        // Also sum from individual post metrics for saves
+        if (post.status === 'approved' && post.metrics) {
+          totalSaves += post.metrics.saves || 0;
+        }
+      });
+    }
+  });
+
   res.status(200).json({
     success: true,
     data: {
@@ -390,10 +470,24 @@ exports.getCampaignPerformance = asyncHandler(async (req, res, next) => {
         status: campaign.status,
         budget: campaign.budget,
         performance: campaign.performance,
+        currency: campaign.currency,
+        scope: campaign.scope,
         startDate: campaign.startDate,
         endDate: campaign.endDate
       },
       influencers: influencerPerformances,
+      trackingMetrics: {
+        totalViews,
+        totalLikes,
+        totalComments,
+        totalShares,
+        totalSaves,
+        totalClicks,
+        totalPosts: allPosts.length,
+        approvedPosts: allPosts.filter(p => p.status === 'approved').length,
+        pendingPosts: allPosts.filter(p => p.status === 'pending').length
+      },
+      posts: allPosts,
       summary: {
         totalInfluencers: influencerPerformances.length,
         invited: influencerPerformances.filter(i => i.status === 'invited').length,

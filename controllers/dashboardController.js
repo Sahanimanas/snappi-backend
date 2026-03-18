@@ -40,18 +40,27 @@ exports.getDashboardOverview = asyncHandler(async (req, res, next) => {
       totalConversions += campaign.performance.totalConversions || 0;
     }
   });
-// Calculate total reach from ALL influencer followers
-const reachAggregation = await Influencer.aggregate([
-  {
-    $group: {
-      _id: null,
-      totalReach: { $sum: '$followers' },  // Sum all followers
-      totalInfluencers: { $sum: 1 }
+  // Calculate total reach from user's campaign influencers (ITD)
+  // Get all unique influencer IDs from user's campaigns
+  const campaignInfluencerIds = allCampaigns.reduce((ids, campaign) => {
+    if (campaign.influencers && campaign.influencers.length > 0) {
+      campaign.influencers.forEach(id => {
+        if (!ids.includes(id.toString())) ids.push(id.toString());
+      });
     }
-  }
-]);
+    return ids;
+  }, []);
 
- totalReach = reachAggregation[0]?.totalReach || 0;
+  if (campaignInfluencerIds.length > 0) {
+    const reachAggregation = await Influencer.aggregate([
+      { $match: { _id: { $in: campaignInfluencerIds.map(id => new (require('mongoose').Types.ObjectId)(id)) } } },
+      { $unwind: '$platforms' },
+      { $group: { _id: null, totalReach: { $sum: '$platforms.followers' } } }
+    ]);
+    const influencerReach = reachAggregation[0]?.totalReach || 0;
+    // Use the higher of campaign performance reach or influencer follower reach
+    totalReach = Math.max(totalReach, influencerReach);
+  }
   // Calculate ROI: ((Revenue - Cost) / Cost) * 100
   // Assuming each conversion is worth $100 (this can be configured)
   const conversionValue = 100;
@@ -538,6 +547,58 @@ exports.getDashboardAnalytics = asyncHandler(async (req, res, next) => {
       }))
     }
   });
+});
+
+// @desc    Export dashboard data as CSV
+// @route   GET /api/dashboard/export
+// @access  Private
+exports.exportDashboardData = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+
+  const allCampaigns = await Campaign.find({ createdBy: userId })
+    .populate('influencers', 'name')
+    .lean();
+
+  const activeCampaigns = allCampaigns.filter(c => c.status === 'active').length;
+  let totalBudget = 0, totalSpent = 0, totalReach = 0;
+
+  allCampaigns.forEach(campaign => {
+    totalBudget += campaign.budget?.total || 0;
+    totalSpent += campaign.budget?.spent || 0;
+    totalReach += campaign.performance?.totalReach || 0;
+  });
+
+  const rows = [
+    ['Dashboard Export - Snappi'],
+    ['Generated', new Date().toISOString()],
+    [],
+    ['Metric', 'Value'],
+    ['Active Campaigns', activeCampaigns],
+    ['Total Campaigns', allCampaigns.length],
+    ['Total Budget', totalBudget],
+    ['Total Spent', totalSpent],
+    ['Total Reach', totalReach],
+    [],
+    ['Campaign Name', 'Status', 'Objective', 'Currency', 'Budget', 'Spent', 'Platforms', 'Start Date', 'End Date', 'Influencers'],
+    ...allCampaigns.map(c => [
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      c.status,
+      c.objective || '',
+      c.currency || 'USD',
+      c.budget?.total || 0,
+      c.budget?.spent || 0,
+      `"${(c.targetPlatforms || []).join('; ')}"`,
+      c.startDate ? new Date(c.startDate).toLocaleDateString() : '',
+      c.endDate ? new Date(c.endDate).toLocaleDateString() : '',
+      c.influencers?.length || 0
+    ])
+  ];
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=dashboard-export.csv');
+  res.status(200).send(csv);
 });
 
 // ============================================

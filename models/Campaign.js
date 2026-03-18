@@ -43,9 +43,29 @@ const campaignSchema = new mongoose.Schema({
       min: 0
     }
   },
+  currency: {
+    type: String,
+    default: 'USD',
+    trim: true
+  },
+  scope: {
+    type: String,
+    trim: true,
+    maxlength: [2000, 'Scope cannot exceed 2000 characters']
+  },
+  successMetrics: {
+    type: String,
+    trim: true,
+    maxlength: [2000, 'Success metrics cannot exceed 2000 characters']
+  },
+  creatorBrief: {
+    type: String,
+    trim: true,
+    maxlength: [5000, 'Creator brief cannot exceed 5000 characters']
+  },
   targetPlatforms: [{
     type: String,
-    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest']
+    enum: ['instagram', 'youtube', 'tiktok', 'facebook', 'twitter', 'linkedin', 'pinterest', 'snapchat', 'threads']
   }],
   demographics: {
     ageRange: [{
