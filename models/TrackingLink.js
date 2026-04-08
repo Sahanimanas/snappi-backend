@@ -23,6 +23,10 @@ const submittedPostSchema = new mongoose.Schema({
     trim: true,
     maxlength: 2000
   },
+  deliverable: {
+    type: String,
+    trim: true
+  },
   postedAt: {
     type: Date
   },

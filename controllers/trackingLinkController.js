@@ -227,7 +227,7 @@ exports.getTrackingLinkByCode = asyncHandler(async (req, res, next) => {
   console.log('Looking up tracking code:', code);
 
   const trackingLink = await TrackingLink.findOne({ trackingCode: code })
-    .populate('campaign', 'name status startDate endDate targetUrl')
+    .populate('campaign', 'name status startDate endDate targetUrl deliverables')
     .populate('influencer', 'name email profileImage platforms');
 
   if (!trackingLink) {
@@ -258,7 +258,7 @@ exports.getTrackingLinkByCode = asyncHandler(async (req, res, next) => {
 // @access  Public
 exports.submitPostByCode = asyncHandler(async (req, res, next) => {
   const { code } = req.params;
-  const { platform, postType, postUrl, caption, postedAt } = req.body;
+  const { platform, postType, postUrl, caption, postedAt, deliverable } = req.body;
 
   if (!platform || !postUrl) {
     return res.status(400).json({
@@ -289,6 +289,7 @@ exports.submitPostByCode = asyncHandler(async (req, res, next) => {
     postType: postType || 'post',
     postUrl,
     caption,
+    deliverable,
     postedAt: postedAt || new Date(),
     status: 'pending',
     submittedAt: new Date()
@@ -344,7 +345,7 @@ exports.submitPostByCode = asyncHandler(async (req, res, next) => {
 // @route   POST /api/tracking-links/:id/posts
 // @access  Private
 exports.submitPost = asyncHandler(async (req, res, next) => {
-  const { platform, postType, postUrl, caption, postedAt } = req.body;
+  const { platform, postType, postUrl, caption, postedAt, deliverable } = req.body;
 
   const userId = checkAuth(req, res);
   if (!userId) return;
@@ -371,6 +372,7 @@ exports.submitPost = asyncHandler(async (req, res, next) => {
     postType: postType || 'post',
     postUrl,
     caption,
+    deliverable,
     postedAt: postedAt || new Date(),
     status: 'pending',
     submittedAt: new Date()

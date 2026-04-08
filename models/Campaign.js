@@ -95,12 +95,8 @@ const campaignSchema = new mongoose.Schema({
     reach: { type: Boolean, default: false }
   },
   deliverables: [{
-    type: {
-      type: String,
-      enum: ['post', 'story', 'reel', 'video', 'blog', 'review']
-    },
-    quantity: Number,
-    description: String
+    type: String,
+    trim: true
   }],
   startDate: {
     type: Date
