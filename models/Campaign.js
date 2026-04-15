@@ -94,10 +94,10 @@ const campaignSchema = new mongoose.Schema({
     sales: { type: Boolean, default: false },
     reach: { type: Boolean, default: false }
   },
-  deliverables: [{
-    type: String,
-    trim: true
-  }],
+  deliverables: {
+    type: [String],
+    default: []
+  },
   startDate: {
     type: Date
   },
