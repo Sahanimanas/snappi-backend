@@ -60,6 +60,7 @@ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/tracking-links', require('./routes/trackingLinkRoutes'));
 app.use('/api/contracts', require('./routes/contractRoutes'));
 app.use('/api/influencers/search', require('./routes/SearchRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 // Health check route
 app.get('/health', (req, res) => {
